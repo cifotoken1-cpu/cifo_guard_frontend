@@ -9,8 +9,7 @@ export function SidebarPanelsControl() {
 
   const panels = [
     { id: 'overview', label: 'Overview' },
-    { id: 'systemControl', label: 'System Control' },
-    { id: 'securityMode', label: 'Security Mode' },
+    { id: 'securityMode', label: 'Emergency' },
     { id: 'sensorStatus', label: 'Sensor Status' },
     { id: 'liveCameras', label: 'Live Cameras' },
     { id: 'activityLogPanel', label: 'Activity Log' },

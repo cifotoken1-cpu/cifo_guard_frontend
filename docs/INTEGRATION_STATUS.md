@@ -67,11 +67,12 @@ grep -rn "@stub: hybrid" src/ | wc -l
 |---|---|---|
 | 🟢 Real | (di luar scope dokumen ini — lihat `docs/features/*.md`) | — |
 | 🟢 **Resolved** (sebelumnya legacy/blocked) | **1** (#1 cameras: DB-backed sejak 2026-05-08) | — |
+| 🟢 **Removed** (placeholder dihapus) | **2** (#2 arm/disarm, #3 mode selector) | — |
 | 🟡 Hybrid | 2 | ✅ 2 marker |
-| 🟠 Backend-Blocked | 5 | ✅ 4 marker |
+| 🟠 Backend-Blocked | 3 | ✅ 2 marker |
 | 🔴 Legacy | 0 | — |
 | ⚪ TBD | 2 | — |
-| **Total entry yang membutuhkan perhatian** | **9** | **6 ditandai** |
+| **Total entry yang membutuhkan perhatian** | **7** | **4 ditandai** |
 
 **GitHub backlog:** issue #2, #3, #4, #5 (epic) + #6–#13 (action items). Lihat label `tracking`, `integration:*`.
 
@@ -84,8 +85,8 @@ grep -rn "@stub: hybrid" src/ | wc -l
 | # | Area | File / Lokasi | Kategori | Penjelasan | Aksi yang Diperlukan | Blocker / Dependency | Owner | Status |
 |---|---|---|---|---|---|---|---|---|
 | 1 | ~~**18 kamera hardcoded + injeksi Vigi AI**~~ → **DB-backed via Camera.getAll()** | `backend/api/router.js` (legacy `GET /cameras`); `src/api/cameras.api.js` (`list()`) | 🟢 RESOLVED (2026-05-08) | Konstanta `CCTV_CAMERAS` (164 baris, 18 kamera hardcoded) dihapus dari backend. Legacy endpoint `/api/cameras` sekarang query `Camera.getAll()` dari DB. Heartbeat POST validation ganti pakai `Camera.getById()`. Frontend tidak perlu di-update karena URL & response shape preserved. | — | — | — | ✅ Resolved — closes #10 |
-| 2 | **Arm/Disarm system** | `src/store/system.store.js` (`armed`, `setArmed`) | 🟠 BACKEND-BLOCKED | State `armed` hanya local + persisted ke `localStorage`. Tidak ada koordinasi server-side; guard A "arm" tidak terlihat oleh guard B. | Backend implement `POST /api/system/arm`, `POST /api/system/disarm`, `GET /api/system/status`, WS `system_status_changed`. Frontend swap dari local state ke API call. | Backend team | Backend dev → Frontend dev | Marker ✅ + issue [#6](https://github.com/cifotoken1-cpu/cifo_guard_frontend/issues/6) |
-| 3 | **Mode selector (Home / Night / Silent)** | `src/store/system.store.js` (`mode`, `setMode`); UI di `src/features/dashboard/CenterPanel.jsx`, `src/features/panic/PanicConfirmModal.jsx` | 🟠 BACKEND-BLOCKED | Mode tidak tersinkronisasi antar device. Saat ini hanya local state. Workaround: `feature_flags` table dengan key `system.mode`. | Backend implement `POST/GET /api/system/mode` (atau via `feature_flags`), WS `system_mode_changed`. Frontend swap. | Backend team | Backend dev → Frontend dev | Marker ✅ + issue [#7](https://github.com/cifotoken1-cpu/cifo_guard_frontend/issues/7) |
+| 2 | ~~**Arm/Disarm system**~~ → **REMOVED** | (dihapus dari `src/store/system.store.js`, `CenterPanel.jsx`, `TopBar.jsx`, `Sidebar.jsx`) | 🟢 REMOVED (2026-05-08) | Fitur Arm/Disarm dinilai sebagai placeholder UI — tidak ada use case bisnis nyata yang dibutuhkan. Dihapus sepenuhnya dari frontend. Tidak pernah ada di backend. | — | — | — | ✅ Removed — closes #6 |
+| 3 | ~~**Mode selector (Home / Night / Silent)**~~ → **REMOVED** | (dihapus dari `src/store/system.store.js`, `CenterPanel.jsx`; `PanicConfirmModal.jsx` cleaned) | 🟢 REMOVED (2026-05-08) | Mode home/night/silent dinilai sebagai placeholder UI. Dihapus dari MODES array. Section "Security Mode" di-rename jadi "Emergency" yang hanya berisi tombol Panic (real feature). Mode `panic` tidak butuh state karena one-shot trigger. | — | — | — | ✅ Removed — closes #7 |
 | 4 | **Sensor list** (door / motion / glass) | `src/features/dashboard/CenterPanel.jsx` (derive dari `useRecentActivities`) | 🟠 BACKEND-BLOCKED | Sensor list diderivasi dari `GET /api/activities/recent` dengan filter type berdasarkan deskripsi. Race condition saat WS event masuk; filter berbasis text matching, fragile. | Backend implement `GET /api/sensors` dengan field `id`, `type`, `status`, `location`, `last_event_at` + WS `sensor_status_changed`. Frontend tambah hook `useSensors()`. | Backend team | Backend dev → Frontend dev | Marker ✅ + issue [#8](https://github.com/cifotoken1-cpu/cifo_guard_frontend/issues/8) |
 | 5 | **GPS fallback** | `src/utils/geo.js` (`FALLBACK_GPS` constant); dipakai di `src/features/panic/PanicConfirmModal.jsx` | 🟡 HYBRID | Konstanta default saat browser geolocation gagal/denied. **Sengaja** — panic flow tetap bisa kirim alert walau tanpa GPS akurat. | Tandai dengan `// @stub: hybrid`. Tidak perlu dihapus. | — (by design) | Frontend dev | ✅ Marker added |
 | 6 | **Animated background placeholder** (CameraCard) | `src/features/cameras/CameraCard.jsx` | 🟡 HYBRID | Placeholder visual cyberpunk saat `cam.streamUrl` kosong / non-`.m3u8`. **Sengaja** — UX lebih baik daripada blank. | Tandai dengan `// @stub: hybrid`. Tidak perlu dihapus. | — (by design) | Frontend dev | ✅ Marker added |

@@ -1,5 +1,4 @@
 import { I } from '../../icons';
-import { useSystemStore } from '../../store/system.store';
 import { useUIStore } from '../../store/ui.store';
 import { useAlertStats } from '../../hooks/useAlertsStream';
 import { useCameras } from '../../hooks/useCamerasStream';
@@ -8,7 +7,6 @@ import { formatUptime } from '../../utils/format';
 import styles from './TopBar.module.css';
 
 export function TopBar() {
-  const armed = useSystemStore((s) => s.armed);
   const openModal = useUIStore((s) => s.openModal);
 
   const { data: alertStats } = useAlertStats();
@@ -34,7 +32,6 @@ export function TopBar() {
       </div>
 
       <div className={styles.stats}>
-        <Stat label="System" value={armed ? 'ARMED' : 'DISARMED'} tone={armed ? 'bad' : 'ok'} dot />
         <Stat
           label="Alerts"
           value={alertCount}

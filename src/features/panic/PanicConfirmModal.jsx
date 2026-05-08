@@ -3,7 +3,6 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Modal } from '../../components/ui/Modal';
 import { I } from '../../icons';
 import { useUIStore } from '../../store/ui.store';
-import { useSystemStore } from '../../store/system.store';
 import { alertsApi } from '../../api/alerts.api';
 import { getGPS, FALLBACK_GPS } from '../../utils/geo';
 import { DEFAULT_USER_ID, PANIC_TYPES } from '../../config';
@@ -20,7 +19,6 @@ export function PanicConfirmModal() {
   const modal = useUIStore((s) => s.modal);
   const closeModal = useUIStore((s) => s.closeModal);
   const addToast = useUIStore((s) => s.addToast);
-  const setMode = useSystemStore((s) => s.setMode);
 
   const [type, setType] = useState('MEDICAL');
   const [gpsState, setGpsState] = useState({ status: 'idle', coords: null, error: null });
@@ -47,7 +45,6 @@ export function PanicConfirmModal() {
       }),
     onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ['alerts'] });
-      setMode('panic');
       addToast({
         type: 'panic',
         title: 'Panic alert sent',

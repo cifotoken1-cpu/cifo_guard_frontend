@@ -23,7 +23,6 @@ export function RightPanel() {
   // Check if all CenterPanel sections are hidden for fullscreen layout
   const isCenterPanelEmpty =
     !sectionVisibility.overview &&
-    !sectionVisibility.systemControl &&
     !sectionVisibility.securityMode;
 
   return (

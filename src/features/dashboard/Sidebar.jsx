@@ -18,7 +18,6 @@ import styles from './Sidebar.module.css';
 export function Sidebar() {
   const time = useClock();
   const navigate = useNavigate();
-  const armed = useSystemStore((s) => s.armed);
   const activeNav = useSystemStore((s) => s.activeNav);
   const setActiveNav = useSystemStore((s) => s.setActiveNav);
   const sidebarCollapsed = useSystemStore((s) => s.sidebarCollapsed);
@@ -94,17 +93,6 @@ export function Sidebar() {
         </div>
         {!sidebarCollapsed && <div className={styles.clockDate}>{formatDate(time)}</div>}
       </div>
-
-      {armed && !sidebarCollapsed && (
-        <div className={`${styles.armedBadge} ${styles.armed}`}>
-          <span className={styles.armedDot} />
-          Armed — Active
-        </div>
-      )}
-
-      {armed && sidebarCollapsed && (
-        <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--red)', margin: '8px auto' }} />
-      )}
 
       <nav className={styles.nav}>
         {navItems.map((item) => (

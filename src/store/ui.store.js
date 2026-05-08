@@ -14,7 +14,6 @@ export const useUIStore = create(
       // Dashboard section visibility state
       sectionVisibility: {
         overview: true,
-        systemControl: true,
         securityMode: true,
         sensorStatus: true,
         liveCameras: true,
@@ -54,7 +53,6 @@ export const useUIStore = create(
         set({
           sectionVisibility: {
             overview: true,
-            systemControl: true,
             securityMode: true,
             sensorStatus: true,
             liveCameras: true,

@@ -17,18 +17,11 @@ import { CameraCard } from '../cameras/CameraCard';
 import styles from './CenterPanel.module.css';
 
 const MODES = [
-  { id: 'home', label: 'Home', icon: I.home },
-  { id: 'night', label: 'Night', icon: I.moon },
-  { id: 'silent', label: 'Silent', icon: I.bell },
   { id: 'panic', label: 'Panic', icon: I.alert },
 ];
 
 export function CenterPanel() {
   const activeNav = useSystemStore((s) => s.activeNav);
-  const armed = useSystemStore((s) => s.armed);
-  const setArmed = useSystemStore((s) => s.setArmed);
-  const mode = useSystemStore((s) => s.mode);
-  const setMode = useSystemStore((s) => s.setMode);
   const openModal = useUIStore((s) => s.openModal);
   const sectionVisibility = useUIStore((s) => s.sectionVisibility);
   const time = useClock();
@@ -87,9 +80,7 @@ export function CenterPanel() {
     if (id === 'panic') {
       // Open panic confirmation modal — actual POST happens after confirm
       openModal('panic-confirm');
-      return;
     }
-    setMode(id);
   }
 
   return (
@@ -119,37 +110,17 @@ export function CenterPanel() {
         </section>
       )}
 
-      {/* Arm/Disarm */}
-      {sectionVisibility.systemControl && (
-        <section>
-          <div className="section-hd">
-            <div className="section-label">System Control</div>
-          </div>
-          <div className={styles.armRow}>
-            <button
-              className={`${styles.armBtn} ${armed ? styles.armActivate : ''}`}
-              onClick={() => setArmed(true)}
-            >
-              <span style={{ width: 26, height: 26 }}>{I.lock}</span>
-              Activate
-            </button>
-          </div>
-        </section>
-      )}
-
-      {/* Mode */}
+      {/* Emergency */}
       {sectionVisibility.securityMode && (
         <section>
           <div className="section-hd">
-            <div className="section-label">Security Mode</div>
+            <div className="section-label">Emergency</div>
           </div>
           <div className={styles.modeRow}>
             {MODES.map((m) => (
               <button
                 key={m.id}
-                className={`${styles.modeBtn} ${
-                  mode === m.id ? (m.id === 'panic' ? styles.panicActive : styles.modeActive) : ''
-                }`}
+                className={`${styles.modeBtn} ${m.id === 'panic' ? styles.panicActive : ''}`}
                 onClick={() => handleModeClick(m.id)}
               >
                 <span style={{ width: 16, height: 16 }}>{m.icon}</span>
