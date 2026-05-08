@@ -26,16 +26,53 @@ Daftar eksplisit semua area di frontend yang **masih menggunakan dummy data, pla
 
 ---
 
+## Konvensi Marker `// @stub:`
+
+Setiap dummy/placeholder/fallback di kode HARUS punya marker grep-able:
+
+```
+// @stub: <kategori> — <alasan singkat>. Lihat #<issue-number>, INTEGRATION_STATUS.md #<row>.
+```
+
+**Contoh:**
+
+```js
+// @stub: hybrid — fallback default saat browser geolocation gagal/denied. Lihat #3, INTEGRATION_STATUS.md #5.
+export const FALLBACK_GPS = { ... };
+
+// @stub: backend-blocked — endpoint POST /api/system/arm belum ada (lihat #6, INTEGRATION_STATUS.md #2)
+armed: false,
+
+// @stub: legacy — endpoint /api/cameras return 18 kamera hardcoded di backend memory (lihat #9, #10, INTEGRATION_STATUS.md #1)
+list: async () => { ... }
+```
+
+**Audit cepat:**
+
+```bash
+# Lihat semua marker yang ada di kode:
+grep -rn "@stub:" src/
+
+# Hitung per kategori:
+grep -rn "@stub: legacy" src/ | wc -l
+grep -rn "@stub: backend-blocked" src/ | wc -l
+grep -rn "@stub: hybrid" src/ | wc -l
+```
+
+---
+
 ## Ringkasan (Quick Stats)
 
-| Kategori | Jumlah Entry |
-|---|---|
-| 🟢 Real | (di luar scope dokumen ini — lihat `docs/features/*.md`) |
-| 🟡 Hybrid | 2 |
-| 🟠 Backend-Blocked | 4 |
-| 🔴 Legacy | 1 |
-| ⚪ TBD | 1 |
-| **Total entry yang membutuhkan perhatian** | **8** |
+| Kategori | Jumlah Entry | Marker `@stub:` di kode |
+|---|---|---|
+| 🟢 Real | (di luar scope dokumen ini — lihat `docs/features/*.md`) | — |
+| 🟡 Hybrid | 2 | ✅ 2 marker |
+| 🟠 Backend-Blocked | 5 | ✅ 4 marker |
+| 🔴 Legacy | 1 | ✅ 1 marker |
+| ⚪ TBD | 2 | — |
+| **Total entry yang membutuhkan perhatian** | **10** | **7 ditandai** |
+
+**GitHub backlog:** issue #2, #3, #4, #5 (epic) + #6–#13 (action items). Lihat label `tracking`, `integration:*`.
 
 ---
 
@@ -45,14 +82,15 @@ Daftar eksplisit semua area di frontend yang **masih menggunakan dummy data, pla
 
 | # | Area | File / Lokasi | Kategori | Penjelasan | Aksi yang Diperlukan | Blocker / Dependency | Owner | Status |
 |---|---|---|---|---|---|---|---|---|
-| 1 | **18 kamera hardcoded + injeksi Vigi AI** | `src/api/cameras.api.js` (`list()`) | 🔴 LEGACY | Endpoint `/api/cameras` legacy return 18 kamera hardcoded + injeksi data Vigi AI. Bukan dari database real. | Migrasi `useCameras()` ke `camerasApi.db.list()` setelah backend bug `/api/api/cameras` (#4) selesai. Hapus konstanta hardcoded. | Issue #4 (backend double-prefix bug) | Frontend dev | Pending |
-| 2 | **Arm/Disarm system** | `src/store/system.store.js` (`armed`, `setArmed`) | 🟠 BACKEND-BLOCKED | State `armed` hanya local + persisted ke `localStorage`. Tidak ada koordinasi server-side; guard A "arm" tidak terlihat oleh guard B. | Backend implement `POST /api/system/arm`, `POST /api/system/disarm`, `GET /api/system/status`, WS `system_status_changed`. Frontend swap dari local state ke API call. | Backend team | Backend dev → Frontend dev | Pending |
-| 3 | **Mode selector (Home / Night / Silent)** | `src/store/system.store.js` (`mode`, `setMode`); UI di `src/features/dashboard/CenterPanel.jsx`, `src/features/panic/PanicConfirmModal.jsx` | 🟠 BACKEND-BLOCKED | Mode tidak tersinkronisasi antar device. Saat ini hanya local state. Workaround: `feature_flags` table dengan key `system.mode`. | Backend implement `POST/GET /api/system/mode` (atau via `feature_flags`), WS `system_mode_changed`. Frontend swap. | Backend team | Backend dev → Frontend dev | Pending |
-| 4 | **Sensor list** (door / motion / glass) | `src/features/dashboard/CenterPanel.jsx` (derive dari `useRecentActivities`) | 🟠 BACKEND-BLOCKED | Sensor list diderivasi dari `GET /api/activities/recent` dengan filter type berdasarkan deskripsi. Race condition saat WS event masuk; filter berbasis text matching, fragile. | Backend implement `GET /api/sensors` dengan field `id`, `type`, `status`, `location`, `last_event_at` + WS `sensor_status_changed`. Frontend tambah hook `useSensors()`. | Backend team | Backend dev → Frontend dev | Pending |
-| 5 | **GPS fallback** | `src/utils/geo.js` (`FALLBACK_GPS` constant); dipakai di `src/features/panic/PanicConfirmModal.jsx` | 🟡 HYBRID | Konstanta default saat browser geolocation gagal/denied. **Sengaja** — panic flow tetap bisa kirim alert walau tanpa GPS akurat. | Tambahkan marker `// @stub: hybrid — fallback saat geolocation gagal` di `geo.js`. Tidak perlu dihapus. | — (by design) | Frontend dev | Tinggal label |
-| 6 | **Animated background placeholder** (CameraCard) | `src/features/cameras/CameraCard.jsx` | 🟡 HYBRID | Placeholder visual cyberpunk saat `cam.streamUrl` kosong / non-`.m3u8`. **Sengaja** — UX lebih baik daripada blank. | Tambahkan marker `// @stub: hybrid — placeholder saat stream tidak tersedia` di komponen. Tidak perlu dihapus. | — (by design) | Frontend dev | Tinggal label |
-| 7 | **HTML mockups di root repo** | `Incident Response.html`, `Interactive Map.html`, `Panic Alerts.html`, `Team Management.html`, `Visitor Registration.html` | ⚪ TBD | 5 file HTML mockup di repo root. **Status kabur**: masih jadi referensi desain, atau sudah obsolete karena React app sudah implement? | **PO decision:** (a) Audit per file → React app sudah cover atau belum, (b) Kalau sudah cover → pindah ke `docs/mockups/` atau hapus, (c) Update README dengan konvensi mockup. | Keputusan PO | PO + Frontend dev | Pending |
+| 1 | **18 kamera hardcoded + injeksi Vigi AI** | `src/api/cameras.api.js` (`list()`) | 🔴 LEGACY | Endpoint `/api/cameras` legacy return 18 kamera hardcoded di backend memory + injeksi data Vigi AI. Bukan dari database real. | Migrasi `useCameras()` ke `camerasApi.db.list()` setelah backend bug `/api/api/cameras` selesai. Hapus konstanta hardcoded. | Issue [#9](https://github.com/cifotoken1-cpu/cifo_guard_frontend/issues/9) (backend double-prefix bug) | Frontend dev | Marker ✅ + issue [#10](https://github.com/cifotoken1-cpu/cifo_guard_frontend/issues/10) |
+| 2 | **Arm/Disarm system** | `src/store/system.store.js` (`armed`, `setArmed`) | 🟠 BACKEND-BLOCKED | State `armed` hanya local + persisted ke `localStorage`. Tidak ada koordinasi server-side; guard A "arm" tidak terlihat oleh guard B. | Backend implement `POST /api/system/arm`, `POST /api/system/disarm`, `GET /api/system/status`, WS `system_status_changed`. Frontend swap dari local state ke API call. | Backend team | Backend dev → Frontend dev | Marker ✅ + issue [#6](https://github.com/cifotoken1-cpu/cifo_guard_frontend/issues/6) |
+| 3 | **Mode selector (Home / Night / Silent)** | `src/store/system.store.js` (`mode`, `setMode`); UI di `src/features/dashboard/CenterPanel.jsx`, `src/features/panic/PanicConfirmModal.jsx` | 🟠 BACKEND-BLOCKED | Mode tidak tersinkronisasi antar device. Saat ini hanya local state. Workaround: `feature_flags` table dengan key `system.mode`. | Backend implement `POST/GET /api/system/mode` (atau via `feature_flags`), WS `system_mode_changed`. Frontend swap. | Backend team | Backend dev → Frontend dev | Marker ✅ + issue [#7](https://github.com/cifotoken1-cpu/cifo_guard_frontend/issues/7) |
+| 4 | **Sensor list** (door / motion / glass) | `src/features/dashboard/CenterPanel.jsx` (derive dari `useRecentActivities`) | 🟠 BACKEND-BLOCKED | Sensor list diderivasi dari `GET /api/activities/recent` dengan filter type berdasarkan deskripsi. Race condition saat WS event masuk; filter berbasis text matching, fragile. | Backend implement `GET /api/sensors` dengan field `id`, `type`, `status`, `location`, `last_event_at` + WS `sensor_status_changed`. Frontend tambah hook `useSensors()`. | Backend team | Backend dev → Frontend dev | Marker ✅ + issue [#8](https://github.com/cifotoken1-cpu/cifo_guard_frontend/issues/8) |
+| 5 | **GPS fallback** | `src/utils/geo.js` (`FALLBACK_GPS` constant); dipakai di `src/features/panic/PanicConfirmModal.jsx` | 🟡 HYBRID | Konstanta default saat browser geolocation gagal/denied. **Sengaja** — panic flow tetap bisa kirim alert walau tanpa GPS akurat. | Tandai dengan `// @stub: hybrid`. Tidak perlu dihapus. | — (by design) | Frontend dev | ✅ Marker added |
+| 6 | **Animated background placeholder** (CameraCard) | `src/features/cameras/CameraCard.jsx` | 🟡 HYBRID | Placeholder visual cyberpunk saat `cam.streamUrl` kosong / non-`.m3u8`. **Sengaja** — UX lebih baik daripada blank. | Tandai dengan `// @stub: hybrid`. Tidak perlu dihapus. | — (by design) | Frontend dev | ✅ Marker added |
+| 7 | **HTML mockups di root repo** | `Incident Response.html`, `Interactive Map.html`, `Panic Alerts.html`, `Team Management.html`, `Visitor Registration.html` | ⚪ TBD | 5 file HTML mockup di repo root. **Status kabur**: masih jadi referensi desain, atau sudah obsolete karena React app sudah implement? | **PO decision:** (a) Audit per file → React app sudah cover atau belum, (b) Kalau sudah cover → pindah ke `docs/mockups/` atau hapus, (c) Update README dengan konvensi mockup. | Keputusan PO | PO + Frontend dev | Pending — issue [#11](https://github.com/cifotoken1-cpu/cifo_guard_frontend/issues/11) |
 | 8 | **Vigi AI camera injection** (turunan dari #1) | `src/api/cameras.api.js` (logic injeksi di `list()`) | ⚪ TBD | Apakah injeksi data Vigi AI di list legacy sudah merepresentasikan integrasi real ke pipeline AI, atau ini juga mockup? Perlu klarifikasi. | Klarifikasi dengan backend: apakah `/api/cameras` real-mengembalikan kamera Vigi yang ter-AI-detect? Kalau ya → reklasifikasi jadi 🟢. Kalau tidak → 🔴. | Backend team | Backend dev untuk klarifikasi | Pending |
+| 9 | **`DEFAULT_SENSORS` hardcoded** (6 sensor fallback) | `src/features/dashboard/CenterPanel.jsx:300` | 🟠 BACKEND-BLOCKED | Saat `useRecentActivities()` kosong, `deriveSensors()` return 6 sensor hardcoded (Living Room Door, Garage Motion, dst.) untuk UI tetap "ada isinya" saat dev. Akan tampil di production juga kalau backend belum kirim activities. | Hapus konstanta setelah `/api/sensors` siap (lihat entry #4) — replace dengan empty state component yang lebih jujur. | Issue [#8](https://github.com/cifotoken1-cpu/cifo_guard_frontend/issues/8) | Frontend dev | Marker ✅ added |
 
 ---
 

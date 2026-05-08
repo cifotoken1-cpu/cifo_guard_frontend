@@ -266,6 +266,8 @@ const STATUS_LABEL = {
 /**
  * Derive sensor list from recent activities.
  * Backend doesn't have a dedicated /sensors endpoint yet, so we infer from activity types.
+ *
+ * @stub: backend-blocked — /api/sensors endpoint belum ada, sensor di-derive dari activities/recent (fragile, race-prone). Lihat #8, INTEGRATION_STATUS.md #4.
  */
 function deriveSensors(activities) {
   if (!activities || !Array.isArray(activities)) return DEFAULT_SENSORS;
@@ -296,6 +298,7 @@ function deriveStatus(activity) {
   return 'clear';
 }
 
+// @stub: backend-blocked — 6 sensor hardcoded sebagai fallback saat activities kosong (UX dev). Hapus saat /api/sensors siap. Lihat #8, INTEGRATION_STATUS.md #4.
 // Fallback when no real data yet — keeps UI looking populated during dev
 const DEFAULT_SENSORS = [
   { id: 0, type: 'door', name: 'Living Room Door', loc: 'Ground Floor', time: '23 hrs ago', status: 'open' },

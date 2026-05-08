@@ -28,6 +28,7 @@ export function getGPS(options = {}) {
   });
 }
 
+// @stub: hybrid — fallback default saat browser geolocation gagal/denied (panic flow tetap jalan). Lihat #3, INTEGRATION_STATUS.md #5.
 /** Fallback when GPS is unavailable — returns center of Indonesia */
 export const FALLBACK_GPS = {
   latitude: -2.5489,

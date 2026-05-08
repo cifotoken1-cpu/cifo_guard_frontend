@@ -11,6 +11,7 @@ import { api } from './client';
  */
 export const camerasApi = {
   // ──── LEGACY SYSTEM (in-memory) ────
+  // @stub: legacy — endpoint /api/cameras return 18 kamera hardcoded di backend memory (lihat #9, #10, INTEGRATION_STATUS.md #1)
   /**
    * GET /api/cameras — 18 hardcoded cameras.
    * Also injects Vigi AI (C240-01) from DB if registered.

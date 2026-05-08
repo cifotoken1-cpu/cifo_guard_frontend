@@ -9,7 +9,9 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 export const useSystemStore = create(
   persist(
     (set) => ({
+      // @stub: backend-blocked — endpoint POST /api/system/arm belum ada (lihat #6, INTEGRATION_STATUS.md #2)
       armed: false,
+      // @stub: backend-blocked — endpoint POST /api/system/mode belum ada (lihat #7, INTEGRATION_STATUS.md #3)
       mode: 'home', // 'home' | 'night' | 'silent' | 'panic'
       activeNav: 'security',
       sidebarCollapsed: false,

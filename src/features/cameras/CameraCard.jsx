@@ -46,6 +46,7 @@ export function CameraCard({ cam, time, bgIndex = 0 }) {
           autoPlay
         />
       ) : (
+        // @stub: hybrid — animated background placeholder saat HLS stream tidak tersedia (UX). Lihat INTEGRATION_STATUS.md #6.
         <div className={`${styles.bg} ${styles[bgClass]}`} />
       )}
 
