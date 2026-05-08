@@ -188,15 +188,64 @@ _Pending._
 
 ### Force Field Analysis
 
-_Pending._
+#### 🔋 Driving Forces (Mendorong)
+
+| Kekuatan | Mengapa Mendukung |
+|---|---|
+| Codebase relatif kecil & fokus (10 fitur, ~30 file inti) | Audit tractable dalam beberapa sesi |
+| `docs/features/` baru di-commit (per-fitur) | Tinggal tambah kolom "Status Integrasi" |
+| Vite + ESLint sudah terpasang | Lint rule custom siap dipakai |
+| Konvensi React Query konsisten (`useXxxStream` pattern) | Real API mudah di-grep |
+| TanStack Query DevTools tersedia | Verifikasi runtime mana yang nge-fetch |
+| Motivasi user (Anda) hadir | Sesi ini sendiri bukti komitmen |
+| Backend Known Issues sudah didokumentasikan | Daftar dummy "diharuskan" setengah jadi |
+
+#### 🪨 Restraining Forces (Menahan)
+
+| Kekuatan | Mengapa Menahan |
+|---|---|
+| Backend belum siap (arm/mode/sensors/cameras-DB) | Sebagian dummy tak bisa dihilangkan, hanya ditandai |
+| Tidak ada test coverage real-vs-dummy | Tidak ada safety net |
+| Tribal knowledge di kepala dev senior | Audit butuh interview, bukan grep saja |
+| HTML mockup di root status kabur | Butuh keputusan strategis |
+| Risiko "audit one-off" jadi dokumen mati | Solusi harus enforce-able |
+| Fokus ship fitur tetap berlanjut | Audit berkompetisi dengan fitur baru |
+
+#### Net Force
+
+Driving forces secara teknis lebih kuat (codebase kecil, dokumentasi siap, tooling siap), tapi restraining forces lebih strategis (sustainability, kompetisi waktu). **Implikasi:** solusi harus murah eksekusi awal **tapi** membangun mekanisme sustainable.
 
 ### Constraint Identification
 
-_Pending._
+**Bottleneck #1 (utama):** Tidak ada **single source of truth (SSOT)** terpusat yang merekam status integrasi setiap area. Semua tooling lain (lint, code review, marker) adalah *enforcement*; tanpa SSOT terisi, enforcement tidak punya patokan.
+
+**Bottleneck #2 (sekunder):** Ketiadaan **konvensi marker di kode** yang me-link ke SSOT. Tanpa marker, SSOT cepat usang karena tidak ada *bidirectional traceability*.
+
+| Bottleneck | Real / Asumsi | Bisa Kita Pengaruhi? |
+|---|---|---|
+| Tidak ada SSOT terpusat | Real | ✅ Penuh |
+| Tidak ada konvensi marker | Real | ✅ Penuh |
+| Backend belum siap | Real (konteks) | ⚠️ Sebagian — butuh koordinasi |
+| Tidak ada lint enforcement | Asumsi → akan jadi real | ✅ Penuh |
+| Tribal knowledge | Real | ✅ Sebagian — bisa diekstraksi |
 
 ### Key Insights
 
-_Pending._
+🔬 **5 AHA insights yang mengkristal:**
+
+1. **Solusinya adalah "sistem audit yang hidup", bukan one-off** — root cause adalah metadata-blindness, sekedar Excel akan kembali ke tribal knowledge dalam 2 sprint.
+
+2. **Klasifikasi 4 kategori status integrasi** adalah kunci bahasa bersama:
+   - 🟢 `real` — full API integration
+   - 🟡 `hybrid-fallback` — real API + fallback hardcoded saat error (sengaja, valid)
+   - 🟠 `backend-blocked` — dummy karena endpoint belum ada (perlu trigger swap)
+   - 🔴 `legacy-mock` — dummy lama yang harus dihapus segera
+
+3. **Sebagian besar dummy ber-konteks**, bukan kemalasan. Solusi tidak boleh "menuduh" tim — harus membedakan *yang sengaja* dari *yang tertinggal*.
+
+4. **Quick win tersedia:** `docs/features/*.md` yang baru di-commit sudah merekam hook & API per fitur. Tinggal tambah kolom "Status Integrasi" → SSOT v1 dengan biaya sangat rendah.
+
+5. **Lever paling efektif:** Bukan lint rule (prescriptive di awal), bukan dashboard (mahal). Tapi **konvensi penanda kode + tabel inventaris di repo** — dua artefak yang hidup berdampingan dengan cross-reference.
 
 ---
 
