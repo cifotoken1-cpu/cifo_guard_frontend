@@ -128,15 +128,57 @@ Sebagian besar dummy adalah **konsekuensi ketidaksiapan backend** (arm/mode/sens
 
 ### Root Cause Analysis
 
-_Pending — Step 3._
+**Metode:** Fishbone Diagram (lebar) + Five Whys (mendalam pada cabang Tooling/Kode).
+
+#### Fishbone — 4 cabang penyebab
+
+**🧑 People / Proses**
+- Tidak ada code review checklist yang menanyakan "ini real atau dummy?"
+- Definition of Done untuk story tidak menyebutkan "marker integrasi"
+- Onboarding informal — knowledge tinggal di kepala dev senior
+
+**🔧 Tooling / Kode**
+- Tidak ada konvensi penanda yang seragam (TODO/FIXME/`@stub` dipakai bebas)
+- Tidak ada lint rule yang flag hardcoded mock data
+- Hooks abstrak menyembunyikan asal data — sulit di-grep
+- Tidak ada feature flag eksplisit "use real" vs "use mock"
+
+**🔌 Backend Dependency**
+- Beberapa endpoint belum jadi (arm, mode, sensors, cameras-DB) — frontend pioneer pakai mock
+- Tidak ada kontrak API formal yang versioned (OpenAPI / Postman tracked)
+- Tidak ada ritual "swap to real" saat backend siap
+
+**📚 Dokumentasi / Komunikasi**
+- Known Issues tersebar di README, deep-dive doc, dan komentar kode
+- HTML mockup di root tanpa label live/obsolete
+- Tidak ada "integration health" dashboard atau report
+
+#### Five Whys — Cabang Tooling
+
+| # | Pertanyaan | Jawaban |
+|---|---|---|
+| 1 | Kenapa developer tidak tahu mana yang dummy? | Tidak ada penanda di kode |
+| 2 | Kenapa tidak ada penanda? | Konvensi tidak pernah disepakati |
+| 3 | Kenapa tidak pernah disepakati? | Saat awal fokus *ship fitur*; mocking dianggap sementara |
+| 4 | Kenapa "sementara" jadi permanen? | Tidak ada mekanisme yang mengingatkan ulang (list, lint, tag) |
+| 5 | **Kenapa tidak ada mekanisme pengingat?** | **Status integrasi tidak diperlakukan sebagai *first-class metadata* dalam workflow tim — hanya tribal knowledge** |
+
+#### 🎯 Root Cause Utama
+
+> **Status integrasi (real / hybrid / dummy) tidak diperlakukan sebagai metadata kelas pertama di codebase.** Tidak ada artefak (file, marker, lint, dashboard) yang membuat status ini visible by default — sehingga pengetahuan terdegradasi menjadi tribal knowledge yang menguap saat turnover atau saat developer pindah konteks.
 
 ### Contributing Factors
 
-_Pending._
+1. **Tooling kosong** — tidak ada konvensi marker, lint rule, atau index file
+2. **Proses kosong** — code review tidak menanyakan status integrasi; DoD tidak menyebutkan
+3. **Backend dependency yang nyata** — sebagian dummy memang konsekuensi tak bisa dihindari, tapi tidak terdaftar kapan harus diganti
+4. **Dokumentasi tersebar** — Known Issues di 3 tempat berbeda (README, deep-dive doc, komentar kode); tidak ada single source of truth
 
 ### System Dynamics
 
-_Pending._
+- 🔁 **Reinforcing loop (vicious cycle):** Fitur baru → dummy ad-hoc untuk *unblock* development → makin sulit melacak → developer pasrah → dummy baru ditambah tanpa ritual cleanup → semakin kabur.
+- ⏳ **Backend delay loop:** Backend punya delay implementasi yang tidak terukur → tidak ada trigger eksplisit untuk frontend "swap to real" → fallback yang awalnya sementara membatu jadi permanen.
+- 🧠 **Tribal knowledge decay:** Setiap turnover atau context-switch (developer pindah ke fitur lain) menggerus pengetahuan informal tentang status integrasi, tanpa artefak persisten yang menggantikannya.
 
 ---
 
