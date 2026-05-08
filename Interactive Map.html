@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>Interactive Map — Nexus Guard</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>
+.map-grid{display:grid;grid-template-columns:280px 1fr 320px;gap:14px;height:100%}
+.layer-card{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:18px;overflow-y:auto}
+.layer-section{display:flex;flex-direction:column;gap:8px}
+.layer-row{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:7px;font-size:12px;cursor:pointer;transition:all 0.15s;background:var(--bg-deep);border:1px solid var(--border)}
+.layer-row:hover{background:var(--bg-hover)}
+.layer-row.active{background:rgba(99,179,237,0.08);border-color:rgba(99,179,237,0.3)}
+.layer-toggle{width:28px;height:16px;border-radius:8px;background:var(--bg-deep);border:1px solid var(--border);position:relative;flex-shrink:0;transition:all 0.2s}
+.layer-toggle::after{content:'';position:absolute;top:1px;left:1px;width:12px;height:12px;border-radius:50%;background:var(--text-lo);transition:all 0.2s}
+.layer-toggle.on{background:rgba(99,179,237,0.25);border-color:rgba(99,179,237,0.4)}
+.layer-toggle.on::after{left:13px;background:var(--cyan)}
+.layer-swatch{width:10px;height:10px;border-radius:3px;flex-shrink:0}
+.layer-count{font-family:var(--font-mono);font-size:10px;color:var(--text-lo);margin-left:auto}
+
+.map-stage{background:var(--bg-card);border:1px solid var(--border);border-radius:14px;position:relative;overflow:hidden}
+.map-canvas{width:100%;height:100%;background:radial-gradient(ellipse at 50% 50%,oklch(0.18 0.04 220) 0%,oklch(0.10 0.03 230) 100%);position:relative;cursor:grab}
+.map-toolbar{position:absolute;top:14px;left:14px;display:flex;gap:6px;z-index:10}
+.map-toolbtn{padding:7px 11px;background:rgba(13,21,40,0.85);backdrop-filter:blur(10px);border:1px solid var(--border-hi);border-radius:8px;font-size:11px;font-weight:600;color:var(--text-mid);cursor:pointer;display:flex;align-items:center;gap:6px}
+.map-toolbtn:hover{background:rgba(99,179,237,0.15);color:var(--cyan)}
+.map-toolbtn.active{background:rgba(99,179,237,0.18);color:var(--cyan);border-color:rgba(99,179,237,0.35)}
+.map-zoom{position:absolute;bottom:14px;right:14px;display:flex;flex-direction:column;background:rgba(13,21,40,0.85);backdrop-filter:blur(10px);border:1px solid var(--border-hi);border-radius:9px;overflow:hidden;z-index:10}
+.map-zoom div{width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:var(--text-mid);cursor:pointer;border-bottom:1px solid var(--border)}
+.map-zoom div:last-child{border-bottom:none}
+.map-zoom div:hover{background:var(--bg-hover);color:var(--text-hi)}
+
+.map-legend{position:absolute;bottom:14px;left:14px;background:rgba(13,21,40,0.88);backdrop-filter:blur(12px);border:1px solid var(--border-hi);border-radius:10px;padding:12px 14px;z-index:10;display:flex;flex-direction:column;gap:6px;font-size:11px}
+.legend-row{display:flex;align-items:center;gap:8px}
+.legend-swatch{width:11px;height:11px;border-radius:3px}
+.legend-pin{width:11px;height:11px;border-radius:50%}
+
+.scale-bar{position:absolute;top:14px;right:14px;background:rgba(13,21,40,0.85);backdrop-filter:blur(10px);border:1px solid var(--border-hi);border-radius:7px;padding:6px 10px;font-family:var(--font-mono);font-size:10px;color:var(--text-mid);z-index:10;display:flex;align-items:center;gap:8px}
+.scale-bar-line{width:50px;height:3px;background:var(--text-mid);position:relative}
+.scale-bar-line::before,.scale-bar-line::after{content:'';position:absolute;top:-3px;width:1px;height:9px;background:var(--text-mid)}
+.scale-bar-line::before{left:0}.scale-bar-line::after{right:0}
+
+.info-pane{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;display:flex;flex-direction:column;overflow:hidden}
+.info-hd{padding:14px 16px;border-bottom:1px solid var(--border)}
+.info-title{font-size:14px;font-weight:700}
+.info-body{flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:14px}
+.poi{padding:10px 12px;background:var(--bg-deep);border-radius:8px;border:1px solid var(--border);font-size:12px;cursor:pointer;display:flex;align-items:center;gap:10px}
+.poi:hover{background:var(--bg-hover)}
+.poi-icon{width:30px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0}
+.poi-name{font-weight:600}
+.poi-meta{font-size:10px;color:var(--text-lo);margin-top:2px;font-family:var(--font-mono)}
+
+.geofence-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);font-size:12px}
+.geofence-row:last-child{border-bottom:none}
+.gf-color{width:10px;height:10px;border-radius:3px}
+.gf-name{flex:1;font-weight:500}
+.gf-stat{font-family:var(--font-mono);font-size:10px;color:var(--text-lo)}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" src="app-shell.jsx"></script>
+<script type="text/babel">
+const { useState, useEffect } = React;
+
+const PINS = [
+  {id:'p1',type:'guard',name:'Budi Santoso',sub:'Senior Guard',x:280,y:380,color:'oklch(0.65 0.18 30)'},
+  {id:'p2',type:'guard',name:'Siti Nurhaliza',sub:'Patrol',x:520,y:240,color:'oklch(0.65 0.18 290)'},
+  {id:'p3',type:'guard',name:'Hendra Kusuma',sub:'Patrol',x:780,y:520,color:'oklch(0.55 0.14 100)'},
+  {id:'p4',type:'guard',name:'Joko Widodo',sub:'Senior Guard',x:1080,y:340,color:'oklch(0.55 0.16 60)'},
+  {id:'p5',type:'incident',name:'Pencurian motor',sub:'INC-0142 · Tinggi',x:560,y:480,color:'var(--red)'},
+  {id:'p6',type:'incident',name:'Asap mencurigakan',sub:'INC-0141 · Kritis',x:380,y:200,color:'var(--red)'},
+  {id:'p7',type:'panic',name:'Bu Sari Wijaya',sub:'PAN-0089 · C-12',x:920,y:240,color:'var(--red)'},
+  {id:'p8',type:'visitor',name:'Tamu - Pak Andi',sub:'A-22 · 08:30',x:120,y:580,color:'var(--amber)'},
+  {id:'p9',type:'visitor',name:'Kurir JNE',sub:'B-08 · 09:12',x:480,y:580,color:'var(--amber)'},
+  {id:'p10',type:'cctv',name:'CAM-01 Gate',sub:'1080p · OK',x:120,y:540,color:'var(--cyan)'},
+  {id:'p11',type:'cctv',name:'CAM-04 Park',sub:'1080p · OK',x:560,y:520,color:'var(--cyan)'},
+  {id:'p12',type:'cctv',name:'CAM-09 Pool',sub:'1080p · OK',x:780,y:380,color:'var(--cyan)'},
+];
+
+const GEOFENCES = [
+  {name:'Perimeter Utama',color:'rgba(99,179,237,0.25)',stroke:'rgba(99,179,237,0.7)',violations:0},
+  {name:'Zona VIP Blok C',color:'rgba(168,85,247,0.20)',stroke:'rgba(168,85,247,0.6)',violations:0},
+  {name:'Area Anak (Taman)',color:'rgba(34,197,94,0.18)',stroke:'rgba(34,197,94,0.6)',violations:0},
+  {name:'No-Go Zone (Konstruksi)',color:'rgba(239,68,68,0.18)',stroke:'rgba(239,68,68,0.6)',violations:1},
+];
+
+const HOUSES = [
+  // Blok A (kiri atas)
+  ...Array.from({length:8},(_,i)=>({block:'A',x:80+i*70,y:120,w:50,h:55})),
+  ...Array.from({length:8},(_,i)=>({block:'A',x:80+i*70,y:195,w:50,h:55})),
+  // Blok B
+  ...Array.from({length:6},(_,i)=>({block:'B',x:740+i*70,y:120,w:50,h:55})),
+  ...Array.from({length:6},(_,i)=>({block:'B',x:740+i*70,y:195,w:50,h:55})),
+  // Blok C (VIP, larger)
+  ...Array.from({length:5},(_,i)=>({block:'C',x:780+i*78,y:300,w:62,h:70,vip:true})),
+  // Blok D
+  ...Array.from({length:7},(_,i)=>({block:'D',x:80+i*70,y:480,w:50,h:55})),
+  ...Array.from({length:7},(_,i)=>({block:'D',x:80+i*70,y:555,w:50,h:55})),
+  // Blok E
+  ...Array.from({length:5},(_,i)=>({block:'E',x:660+i*70,y:480,w:50,h:55})),
+  ...Array.from({length:5},(_,i)=>({block:'E',x:660+i*70,y:555,w:50,h:55})),
+];
+
+function PinIcon({type}){
+  const i = {
+    guard: <svg viewBox="0 0 24 24" fill="#fff" width="11" height="11"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>,
+    incident: <svg viewBox="0 0 24 24" fill="#fff" width="10" height="10"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>,
+    panic: <svg viewBox="0 0 24 24" fill="#fff" width="10" height="10"><circle cx="12" cy="12" r="10"/></svg>,
+    visitor: <svg viewBox="0 0 24 24" fill="#fff" width="10" height="10"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>,
+    cctv: <svg viewBox="0 0 24 24" fill="#fff" width="10" height="10"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>,
+  };
+  return i[type] || i.guard;
+}
+
+function App(){
+  const [layers, setLayers] = useState({guards:true,incidents:true,panic:true,visitors:true,cctv:true,geofence:true,houses:true,roads:true,heatmap:false});
+  const [tool, setTool] = useState('pan');
+  const [selectedPin, setSelectedPin] = useState(null);
+  const [tick,setTick]=useState(0);
+  useEffect(()=>{const t=setInterval(()=>setTick(x=>x+1),50);return()=>clearInterval(t);},[]);
+
+  const visiblePins = PINS.filter(p=>{
+    if(p.type==='guard'&&!layers.guards) return false;
+    if(p.type==='incident'&&!layers.incidents) return false;
+    if(p.type==='panic'&&!layers.panic) return false;
+    if(p.type==='visitor'&&!layers.visitors) return false;
+    if(p.type==='cctv'&&!layers.cctv) return false;
+    return true;
+  });
+
+  const togg = k => setLayers(l=>({...l,[k]:!l[k]}));
+
+  return (
+    <AppShell active="map" title="Peta Interaktif" subtitle="Basemap dengan geofencing, pin lokasi, dan visualisasi real-time perumahan"
+      headerRight={<><div className="btn">📍 Live</div><div className="btn primary">+ Tambah Geofence</div></>}>
+
+      <div className="map-grid">
+        {/* Layers */}
+        <div className="layer-card">
+          <div>
+            <div className="card-title">Layer Pin</div>
+            <div className="layer-section">
+              {[
+                {k:'guards',label:'Anggota Tim',swatch:'oklch(0.65 0.18 30)',count:4},
+                {k:'incidents',label:'Insiden Aktif',swatch:'var(--red)',count:2},
+                {k:'panic',label:'Panic Alert',swatch:'var(--red)',count:1},
+                {k:'visitors',label:'Visitor Aktif',swatch:'var(--amber)',count:2},
+                {k:'cctv',label:'Kamera CCTV',swatch:'var(--cyan)',count:3},
+              ].map(l=>(
+                <div key={l.k} className={`layer-row ${layers[l.k]?'active':''}`} onClick={()=>togg(l.k)}>
+                  <span className="layer-swatch" style={{background:l.swatch}}></span>
+                  <span>{l.label}</span>
+                  <span className="layer-count">{l.count}</span>
+                  <div className={`layer-toggle ${layers[l.k]?'on':''}`}></div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <div className="card-title">Layer Basemap</div>
+            <div className="layer-section">
+              {[
+                {k:'geofence',label:'Geofence Zone'},
+                {k:'houses',label:'Perumahan'},
+                {k:'roads',label:'Jalan & Path'},
+                {k:'heatmap',label:'Heatmap Insiden'},
+              ].map(l=>(
+                <div key={l.k} className={`layer-row ${layers[l.k]?'active':''}`} onClick={()=>togg(l.k)}>
+                  <span>{l.label}</span>
+                  <div className={`layer-toggle ${layers[l.k]?'on':''}`} style={{marginLeft:'auto'}}></div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <div className="card-title">Geofence Zones</div>
+            {GEOFENCES.map((g,i)=>(
+              <div key={i} className="geofence-row">
+                <span className="gf-color" style={{background:g.stroke}}></span>
+                <span className="gf-name">{g.name}</span>
+                <span className="gf-stat" style={{color:g.violations>0?'var(--red)':'var(--green)'}}>{g.violations} viol.</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Map */}
+        <div className="map-stage">
+          <div className="map-canvas">
+            <div className="map-toolbar">
+              {[{k:'pan',l:'✋ Pan'},{k:'measure',l:'📏 Ukur'},{k:'fence',l:'⬡ Geofence'},{k:'pin',l:'📍 Pin'}].map(t=>(
+                <div key={t.k} className={`map-toolbtn ${tool===t.k?'active':''}`} onClick={()=>setTool(t.k)}>{t.l}</div>
+              ))}
+            </div>
+
+            <div className="scale-bar">
+              <span>0</span>
+              <div className="scale-bar-line"></div>
+              <span>50 m</span>
+            </div>
+
+            <svg viewBox="0 0 1200 700" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">
+              <defs>
+                <pattern id="mapgrid" width="40" height="40" patternUnits="userSpaceOnUse">
+                  <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(99,179,237,0.06)" strokeWidth="1"/>
+                </pattern>
+                <radialGradient id="heat" cx="50%" cy="50%" r="50%">
+                  <stop offset="0%" stopColor="rgba(239,68,68,0.6)"/>
+                  <stop offset="100%" stopColor="rgba(239,68,68,0)"/>
+                </radialGradient>
+              </defs>
+
+              <rect width="1200" height="700" fill="url(#mapgrid)"/>
+
+              {/* roads */}
+              {layers.roads && (
+                <g stroke="rgba(99,179,237,0.15)" strokeWidth="14" strokeLinecap="round" fill="none">
+                  <path d="M 60 90 L 60 660"/>
+                  <path d="M 60 90 L 1140 90"/>
+                  <path d="M 60 660 L 1140 660"/>
+                  <path d="M 1140 90 L 1140 660"/>
+                  <path d="M 60 380 L 1140 380"/>
+                  <path d="M 600 90 L 600 660"/>
+                </g>
+              )}
+              {layers.roads && (
+                <g stroke="rgba(99,179,237,0.05)" strokeWidth="2" strokeDasharray="6,6" fill="none">
+                  <path d="M 60 380 L 1140 380"/>
+                  <path d="M 600 90 L 600 660"/>
+                </g>
+              )}
+
+              {/* houses */}
+              {layers.houses && HOUSES.map((h,i)=>(
+                <g key={i}>
+                  <rect x={h.x} y={h.y} width={h.w} height={h.h} rx="3"
+                    fill={h.vip?'rgba(168,85,247,0.10)':'rgba(99,179,237,0.07)'}
+                    stroke={h.vip?'rgba(168,85,247,0.40)':'rgba(99,179,237,0.22)'}
+                    strokeWidth="1"/>
+                  <text x={h.x+h.w/2} y={h.y+h.h/2+3} textAnchor="middle" fontSize="9" fill="var(--text-lo)" fontFamily="var(--font-mono)">{h.block}</text>
+                </g>
+              ))}
+
+              {/* facility labels */}
+              <text x="60" y="50" fontSize="11" fill="var(--text-lo)" letterSpacing="0.1em">⛩ GERBANG UTAMA</text>
+              <text x="1080" y="50" fontSize="11" fill="var(--text-lo)" letterSpacing="0.1em">GERBANG BLKG</text>
+              <text x="380" y="430" fontSize="11" fill="var(--text-lo)" letterSpacing="0.1em">🌳 TAMAN KOMUNITAS</text>
+              <text x="500" y="50" fontSize="11" fill="var(--text-lo)" letterSpacing="0.1em">🏊 KOLAM RENANG</text>
+              <text x="40" y="700" fontSize="9" fill="var(--text-lo)" fontFamily="var(--font-mono)" letterSpacing="0.08em">PERUM. NEXUS RESIDENCE — 3.2 HA · 218 UNIT</text>
+
+              {/* facilities */}
+              <rect x="280" y="430" width="200" height="100" rx="6" fill="rgba(34,197,94,0.06)" stroke="rgba(34,197,94,0.25)" strokeWidth="1"/>
+              <rect x="500" y="60" width="100" height="50" rx="6" fill="rgba(99,179,237,0.06)" stroke="rgba(99,179,237,0.25)" strokeWidth="1"/>
+
+              {/* geofence */}
+              {layers.geofence && (
+                <g>
+                  <rect x="30" y="60" width="1140" height="620" rx="14" fill="rgba(99,179,237,0.05)" stroke="rgba(99,179,237,0.4)" strokeWidth="2" strokeDasharray="10,5"/>
+                  <rect x="770" y="280" width="420" height="110" rx="10" fill="rgba(168,85,247,0.10)" stroke="rgba(168,85,247,0.50)" strokeWidth="1.5" strokeDasharray="8,4"/>
+                  <rect x="270" y="420" width="220" height="120" rx="10" fill="rgba(34,197,94,0.08)" stroke="rgba(34,197,94,0.45)" strokeWidth="1.5" strokeDasharray="8,4"/>
+                  <rect x="900" y="500" width="220" height="140" rx="10" fill="rgba(239,68,68,0.10)" stroke="rgba(239,68,68,0.50)" strokeWidth="1.5" strokeDasharray="8,4"/>
+                  <text x="980" y="495" fontSize="10" fill="rgba(239,68,68,0.85)" letterSpacing="0.1em">⚠ NO-GO ZONE</text>
+                  <text x="780" y="298" fontSize="10" fill="rgba(168,85,247,0.85)" letterSpacing="0.1em">VIP ZONE</text>
+                </g>
+              )}
+
+              {/* heatmap */}
+              {layers.heatmap && (
+                <g opacity="0.75">
+                  <ellipse cx="560" cy="480" rx="120" ry="90" fill="url(#heat)"/>
+                  <ellipse cx="380" cy="200" rx="100" ry="70" fill="url(#heat)"/>
+                  <ellipse cx="920" cy="240" rx="110" ry="80" fill="url(#heat)"/>
+                </g>
+              )}
+
+              {/* patrol path animation */}
+              {layers.guards && (
+                <path id="patrolPath" d="M 100 380 Q 300 380 500 380 T 900 380 T 1100 380"
+                  fill="none" stroke="rgba(99,179,237,0.3)" strokeWidth="1.5" strokeDasharray="4,4"/>
+              )}
+
+              {/* pins */}
+              {visiblePins.map(p=>{
+                const isAlert = p.type==='incident'||p.type==='panic';
+                return (
+                  <g key={p.id} style={{cursor:'pointer'}} onClick={()=>setSelectedPin(p)}>
+                    {isAlert && (
+                      <circle cx={p.x} cy={p.y} r="22" fill={p.color} opacity="0.2">
+                        <animate attributeName="r" from="14" to="34" dur="1.5s" repeatCount="indefinite"/>
+                        <animate attributeName="opacity" from="0.6" to="0" dur="1.5s" repeatCount="indefinite"/>
+                      </circle>
+                    )}
+                    <circle cx={p.x} cy={p.y} r="13" fill={p.color} stroke="#0a1228" strokeWidth="2"/>
+                    <foreignObject x={p.x-7} y={p.y-7} width="14" height="14">
+                      <div style={{display:'flex',alignItems:'center',justifyContent:'center',width:'100%',height:'100%'}}>
+                        <PinIcon type={p.type}/>
+                      </div>
+                    </foreignObject>
+                    {selectedPin?.id===p.id && (
+                      <g>
+                        <rect x={p.x+18} y={p.y-22} width="160" height="42" rx="6" fill="rgba(13,21,40,0.95)" stroke="var(--border-hi)"/>
+                        <text x={p.x+26} y={p.y-7} fontSize="11" fill="#fff" fontWeight="700">{p.name}</text>
+                        <text x={p.x+26} y={p.y+8} fontSize="9" fill="var(--text-mid)">{p.sub}</text>
+                      </g>
+                    )}
+                  </g>
+                );
+              })}
+
+              {/* coordinate ticker */}
+              <text x="1140" y="690" textAnchor="end" fontSize="9" fill="var(--text-lo)" fontFamily="var(--font-mono)">
+                LAT -6.2334 LON 106.8456 · ZOOM 18 · {visiblePins.length} pins
+              </text>
+            </svg>
+
+            <div className="map-zoom">
+              <div>+</div><div>−</div><div>⊕</div>
+            </div>
+
+            <div className="map-legend">
+              <div style={{fontSize:9,color:'var(--text-lo)',letterSpacing:'0.1em',marginBottom:3}}>LEGENDA</div>
+              <div className="legend-row"><span className="legend-pin" style={{background:'oklch(0.65 0.18 30)'}}></span>Anggota Tim</div>
+              <div className="legend-row"><span className="legend-pin" style={{background:'var(--red)'}}></span>Insiden / Panic</div>
+              <div className="legend-row"><span className="legend-pin" style={{background:'var(--amber)'}}></span>Visitor</div>
+              <div className="legend-row"><span className="legend-pin" style={{background:'var(--cyan)'}}></span>CCTV</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Right info */}
+        <div className="info-pane">
+          <div className="info-hd">
+            <div className="info-title">{selectedPin?'Detail Pin':'POI Aktif'}</div>
+          </div>
+          <div className="info-body">
+            {selectedPin ? (
+              <>
+                <div style={{padding:14,background:'var(--bg-deep)',borderRadius:10,border:'1px solid var(--border)'}}>
+                  <div style={{display:'flex',alignItems:'center',gap:10}}>
+                    <div className="poi-icon" style={{background:selectedPin.color}}><PinIcon type={selectedPin.type}/></div>
+                    <div>
+                      <div style={{fontSize:14,fontWeight:700}}>{selectedPin.name}</div>
+                      <div style={{fontSize:11,color:'var(--text-lo)',marginTop:2}}>{selectedPin.sub}</div>
+                    </div>
+                  </div>
+                  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginTop:14}}>
+                    <div className="field"><div className="field-lbl">Koordinat</div><div className="field-val" style={{fontSize:11,fontFamily:'var(--font-mono)'}}>-6.233{selectedPin.x%10}, 106.84{selectedPin.y%100}</div></div>
+                    <div className="field"><div className="field-lbl">Update</div><div className="field-val" style={{fontSize:11}}>Live · {tick%5}s lalu</div></div>
+                  </div>
+                </div>
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+                  <div className="btn primary" style={{justifyContent:'center'}}>📞 Panggil</div>
+                  <div className="btn" style={{justifyContent:'center'}}>📍 Track</div>
+                </div>
+              </>
+            ) : (
+              <div style={{fontSize:12,color:'var(--text-mid)',padding:'8px 0'}}>Klik pin pada peta untuk melihat detail.</div>
+            )}
+
+            <div>
+              <div className="card-title">POI Penting</div>
+              <div style={{display:'flex',flexDirection:'column',gap:7}}>
+                <div className="poi"><div className="poi-icon" style={{background:'rgba(99,179,237,0.15)'}}>⛩</div><div><div className="poi-name">Gerbang Utama</div><div className="poi-meta">2 guard · CCTV CAM-01</div></div></div>
+                <div className="poi"><div className="poi-icon" style={{background:'rgba(99,179,237,0.15)'}}>🚪</div><div><div className="poi-name">Gerbang Belakang</div><div className="poi-meta">1 guard · CCTV CAM-02</div></div></div>
+                <div className="poi"><div className="poi-icon" style={{background:'rgba(168,85,247,0.15)'}}>👑</div><div><div className="poi-name">Zona VIP Blok C</div><div className="poi-meta">5 unit · Akses terbatas</div></div></div>
+                <div className="poi"><div className="poi-icon" style={{background:'rgba(34,197,94,0.15)'}}>🌳</div><div><div className="poi-name">Taman Komunitas</div><div className="poi-meta">Area anak · CAM-04</div></div></div>
+                <div className="poi"><div className="poi-icon" style={{background:'rgba(99,179,237,0.15)'}}>🏊</div><div><div className="poi-name">Kolam Renang</div><div className="poi-meta">Buka 06:00-21:00</div></div></div>
+              </div>
+            </div>
+
+            <div>
+              <div className="card-title">Statistik Hari Ini</div>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+                <div className="field"><div className="field-lbl">Patroli Selesai</div><div className="field-val">23 / 32</div></div>
+                <div className="field"><div className="field-lbl">Geofence Viol.</div><div className="field-val" style={{color:'var(--red)'}}>1</div></div>
+                <div className="field"><div className="field-lbl">Total Visitor</div><div className="field-val">14</div></div>
+                <div className="field"><div className="field-lbl">CCTV Online</div><div className="field-val" style={{color:'var(--green)'}}>32 / 32</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </AppShell>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>

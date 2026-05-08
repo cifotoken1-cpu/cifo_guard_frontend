@@ -1,0 +1,107 @@
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  height: var(--topbar-h);
+  min-height: var(--topbar-h);
+  padding: 0 20px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(6, 12, 26, 0.95);
+  backdrop-filter: blur(8px);
+  z-index: 10;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--text-hi);
+  padding-right: 20px;
+  border-right: 1px solid var(--border);
+  margin-right: 20px;
+}
+
+.brandIcon {
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  background: linear-gradient(135deg, oklch(0.35 0.14 200), oklch(0.25 0.12 230));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(99, 179, 237, 0.25);
+}
+
+.stats {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+}
+
+.stat {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 12px;
+  border-radius: 7px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-mid);
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+
+.clickable { cursor: pointer; }
+.clickable:hover {
+  background: var(--bg-hover);
+  border-color: var(--border-hi);
+}
+.clickable:active { transform: scale(0.97); }
+
+.val {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 12px;
+}
+.val_ok { color: var(--green); }
+.val_warn { color: var(--amber); }
+.val_bad { color: var(--red); }
+.val_info { color: var(--cyan); }
+
+.dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.dot_ok { background: var(--green); animation: greenPulse 2s infinite; }
+.dot_bad { background: var(--red); animation: statusPulse 1.5s infinite; }
+
+.right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.chip {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-lo);
+  padding: 4px 10px;
+  border-radius: 5px;
+  border: 1px solid var(--border);
+  letter-spacing: 0.06em;
+}
+
+.chipDim {
+  font-size: 10px;
+  color: var(--text-lo);
+  letter-spacing: 0.06em;
+}

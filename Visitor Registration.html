@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>Visitor Registration — Nexus Guard</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>
+.vr-grid{display:grid;grid-template-columns:1fr 380px;gap:16px;height:100%}
+.vr-flow{display:flex;flex-direction:column;gap:14px}
+.vr-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.vr-stat{background:var(--bg-card);border:1px solid var(--border);border-radius:11px;padding:14px;display:flex;align-items:center;gap:12px}
+.vr-stat-icon{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center}
+.vr-stat-num{font-family:var(--font-mono);font-size:20px;font-weight:700;line-height:1}
+.vr-stat-lbl{font-size:10px;color:var(--text-lo);margin-top:3px;letter-spacing:0.05em}
+
+.steps{display:flex;align-items:center;gap:0;background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:14px 18px}
+.step{display:flex;align-items:center;gap:10px;flex:1}
+.step-num{width:26px;height:26px;border-radius:50%;background:var(--bg-deep);border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--text-lo);flex-shrink:0}
+.step.active .step-num{background:rgba(99,179,237,0.18);color:var(--cyan);border-color:var(--cyan)}
+.step.done .step-num{background:var(--green);color:#fff;border-color:var(--green)}
+.step-text{font-size:12px;color:var(--text-mid);font-weight:500}
+.step.active .step-text{color:var(--text-hi);font-weight:600}
+.step-line{flex:0.5;height:1px;background:var(--border);margin:0 8px}
+.step.done + .step-line{background:var(--green)}
+
+.ocr-stage{background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:18px;display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.ocr-section-title{font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-lo);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+
+.ktp-frame{aspect-ratio:1.586/1;background:linear-gradient(135deg,oklch(0.32 0.10 230) 0%,oklch(0.20 0.06 220) 100%);border-radius:12px;border:1px solid rgba(99,179,237,0.3);position:relative;overflow:hidden;padding:14px}
+.ktp-hd{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1px solid rgba(255,255,255,0.15);padding-bottom:8px;margin-bottom:10px}
+.ktp-prov{font-size:9px;font-weight:700;letter-spacing:0.08em;color:#cbd5e1;text-align:center;flex:1;text-transform:uppercase}
+.ktp-prov small{display:block;font-size:7px;font-weight:500;color:#94a3b8;margin-top:1px}
+.ktp-body{display:grid;grid-template-columns:62px 1fr;gap:10px;font-size:8px;color:#cbd5e1}
+.ktp-photo{width:62px;height:78px;background:linear-gradient(135deg,#475569,#334155);border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:24px;color:#94a3b8}
+.ktp-fields{display:flex;flex-direction:column;gap:3px;font-family:var(--font-mono);font-size:7.5px;line-height:1.4}
+.ktp-fld{display:grid;grid-template-columns:60px 1fr;gap:4px}
+.ktp-lbl{color:#94a3b8;text-transform:uppercase;letter-spacing:0.04em}
+.ktp-val{color:#fff;font-weight:600}
+.ktp-nik{position:absolute;top:8px;right:14px;font-family:var(--font-mono);font-size:9px;letter-spacing:0.05em;color:#fff;font-weight:700}
+
+.scan-overlay{position:absolute;inset:0;pointer-events:none}
+.scan-corners::before,.scan-corners::after,
+.scan-corners > span:first-child::before, .scan-corners > span:first-child::after{
+  content:'';position:absolute;width:18px;height:18px;border-color:var(--cyan);border-style:solid;border-width:0
+}
+.scan-corners::before{top:6px;left:6px;border-top-width:2px;border-left-width:2px}
+.scan-corners::after{top:6px;right:6px;border-top-width:2px;border-right-width:2px}
+.scan-corners > span:first-child::before{bottom:6px;left:6px;border-bottom-width:2px;border-left-width:2px}
+.scan-corners > span:first-child::after{bottom:6px;right:6px;border-bottom-width:2px;border-right-width:2px}
+.scan-line{position:absolute;left:6px;right:6px;height:2px;background:linear-gradient(90deg,transparent,var(--cyan),transparent);box-shadow:0 0 12px var(--cyan);animation:scanmove 2s ease-in-out infinite}
+@keyframes scanmove{0%,100%{top:14px}50%{top:calc(100% - 16px)}}
+
+.ocr-panel{display:flex;flex-direction:column;gap:14px}
+.ocr-status{display:flex;align-items:center;justify-content:space-between;padding:11px 14px;background:rgba(99,179,237,0.08);border:1px solid rgba(99,179,237,0.25);border-radius:10px}
+.ocr-status-text{font-size:12px;font-weight:600;color:var(--cyan);display:flex;align-items:center;gap:9px}
+.ocr-spinner{width:14px;height:14px;border:2px solid rgba(99,179,237,0.3);border-top-color:var(--cyan);border-radius:50%;animation:spin 0.8s linear infinite}
+.ocr-progress{flex:1;max-width:140px;height:4px;background:var(--bg-deep);border-radius:2px;margin:0 14px;overflow:hidden}
+.ocr-progress-fill{height:100%;background:var(--cyan);border-radius:2px;transition:width 0.3s}
+.ocr-pct{font-family:var(--font-mono);font-size:11px;color:var(--cyan);font-weight:700}
+
+.field-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ocr-field{padding:10px 12px;background:var(--bg-deep);border:1px solid var(--border);border-radius:8px;position:relative}
+.ocr-field.full{grid-column:1/-1}
+.ocr-field-lbl{font-size:9px;color:var(--text-lo);letter-spacing:0.08em;text-transform:uppercase;display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+.ocr-field-val{font-size:13px;font-weight:500;color:var(--text-hi);font-family:var(--font-mono);min-height:18px}
+.ocr-conf{font-size:9px;font-weight:700;padding:1px 5px;border-radius:3px}
+.ocr-conf.high{background:rgba(34,197,94,0.15);color:var(--green)}
+.ocr-conf.med{background:rgba(251,191,36,0.15);color:var(--amber)}
+.ocr-conf.low{background:rgba(239,68,68,0.15);color:var(--red)}
+.ocr-field.editing{border-color:rgba(99,179,237,0.4)}
+
+.tess-info{padding:11px 14px;background:linear-gradient(135deg,rgba(168,85,247,0.05),rgba(99,179,237,0.04));border:1px solid rgba(168,85,247,0.18);border-radius:10px;display:flex;align-items:center;gap:11px;font-size:11px;color:var(--text-mid)}
+.tess-logo{width:28px;height:28px;border-radius:7px;background:linear-gradient(135deg,var(--purple),var(--cyan));display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:#fff}
+
+.upload-area{aspect-ratio:1.586/1;border:2px dashed var(--border-hi);border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;cursor:pointer;background:var(--bg-deep);transition:all 0.15s}
+.upload-area:hover{border-color:var(--cyan);background:rgba(99,179,237,0.04)}
+.upload-icon{font-size:36px;opacity:0.6}
+
+/* visitor sidebar */
+.recent-card{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;display:flex;flex-direction:column;overflow:hidden;flex:1}
+.recent-hd{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.recent-list{flex:1;overflow-y:auto}
+.visitor-row{padding:11px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:11px}
+.visitor-avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:12px;flex-shrink:0}
+.visitor-info{flex:1;min-width:0}
+.visitor-name{font-size:13px;font-weight:600}
+.visitor-meta{font-size:10px;color:var(--text-lo);font-family:var(--font-mono);margin-top:2px}
+.visitor-time{font-family:var(--font-mono);font-size:10px;color:var(--text-mid);text-align:right}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" src="app-shell.jsx"></script>
+<script type="text/babel">
+const { useState, useEffect } = React;
+
+const RECENT = [
+  {name:'Andi Wijaya',nik:'3174051234567890',unit:'A-22',host:'Pak Rahman',purpose:'Tamu Keluarga',time:'09:32',status:'in',color:'oklch(0.65 0.18 30)'},
+  {name:'Citra Lestari',nik:'3174050987654321',unit:'B-08',host:'Bu Indah',purpose:'Antar Paket',time:'09:18',status:'in',color:'oklch(0.65 0.18 290)'},
+  {name:'Doni Pratama (JNE)',nik:'3174051122334455',unit:'C-12',host:'Bu Sari',purpose:'Kurir',time:'08:50',status:'out',color:'oklch(0.55 0.18 30)'},
+  {name:'Eka Saputra',nik:'3174055544332211',unit:'D-15',host:'Pak Joko',purpose:'Tukang AC',time:'08:42',status:'in',color:'oklch(0.55 0.16 60)'},
+  {name:'Fitri Hapsari',nik:'3174050011223344',unit:'A-05',host:'Bu Lina',purpose:'Tamu Keluarga',time:'08:30',status:'out',color:'oklch(0.68 0.16 350)'},
+  {name:'Gunawan',nik:'3174054455667788',unit:'B-12',host:'Pak Hendra',purpose:'Bisnis',time:'08:15',status:'out',color:'oklch(0.55 0.14 240)'},
+  {name:'Hendra Cahaya (Gojek)',nik:'3174057788990011',unit:'C-08',host:'Bu Maya',purpose:'Pengantar Makanan',time:'08:00',status:'out',color:'oklch(0.55 0.14 140)'},
+];
+
+function initials(n){return n.split(' ').slice(0,2).map(x=>x[0]).join('')}
+
+function App(){
+  const [step, setStep] = useState(2); // 1=upload, 2=scanning, 3=verify, 4=approve
+  const [progress, setProgress] = useState(0);
+
+  useEffect(()=>{
+    if(step!==2) return;
+    setProgress(0);
+    const t = setInterval(()=>{
+      setProgress(p=>{
+        if(p>=100){clearInterval(t); setTimeout(()=>setStep(3),400); return 100}
+        return p+2;
+      });
+    },80);
+    return()=>clearInterval(t);
+  },[step]);
+
+  const ocr = {
+    nik:'3174050708920003',
+    name:'BUDI HARTANTO PRATAMA',
+    pob:'JAKARTA',
+    dob:'07-08-1992',
+    sex:'LAKI-LAKI',
+    addr:'JL. KEMANG RAYA NO.45 RT003/RW005',
+    village:'BANGKA',
+    district:'MAMPANG PRAPATAN',
+    city:'JAKARTA SELATAN',
+    religion:'ISLAM',
+    marital:'KAWIN',
+    job:'KARYAWAN SWASTA',
+    nationality:'WNI',
+  };
+
+  const stepLabels = ['Upload KTP','Scan OCR','Verifikasi Data','Approval'];
+
+  return (
+    <AppShell active="visitor" title="Registrasi Visitor" subtitle="OCR KTP otomatis dengan Tesseract.js untuk proses check-in cepat"
+      headerRight={<><div className="btn">📋 Riwayat Hari Ini</div><div className="btn primary">+ Visitor Baru</div></>}>
+
+      <div className="vr-grid">
+        <div className="vr-flow">
+
+          <div className="vr-stats">
+            <div className="vr-stat">
+              <div className="vr-stat-icon" style={{background:'rgba(34,197,94,0.12)',color:'var(--green)'}}>👥</div>
+              <div><div className="vr-stat-num" style={{color:'var(--green)'}}>14</div><div className="vr-stat-lbl">Visitor Hari Ini</div></div>
+            </div>
+            <div className="vr-stat">
+              <div className="vr-stat-icon" style={{background:'rgba(99,179,237,0.12)',color:'var(--cyan)'}}>🟢</div>
+              <div><div className="vr-stat-num" style={{color:'var(--cyan)'}}>4</div><div className="vr-stat-lbl">Sedang di Dalam</div></div>
+            </div>
+            <div className="vr-stat">
+              <div className="vr-stat-icon" style={{background:'rgba(251,191,36,0.12)',color:'var(--amber)'}}>⏱</div>
+              <div><div className="vr-stat-num" style={{color:'var(--amber)'}}>32s</div><div className="vr-stat-lbl">Avg. Check-in Time</div></div>
+            </div>
+            <div className="vr-stat">
+              <div className="vr-stat-icon" style={{background:'rgba(168,85,247,0.12)',color:'var(--purple)'}}>✨</div>
+              <div><div className="vr-stat-num" style={{color:'var(--purple)'}}>96%</div><div className="vr-stat-lbl">OCR Accuracy</div></div>
+            </div>
+          </div>
+
+          {/* Steps */}
+          <div className="steps">
+            {stepLabels.map((l,i)=>{
+              const n = i+1;
+              const cls = n<step?'done':n===step?'active':'';
+              return (
+                <React.Fragment key={n}>
+                  <div className={`step ${cls}`}>
+                    <div className="step-num">{n<step?'✓':n}</div>
+                    <div className="step-text">{l}</div>
+                  </div>
+                  {n<stepLabels.length && <div className="step-line"></div>}
+                </React.Fragment>
+              );
+            })}
+          </div>
+
+          {/* OCR Stage */}
+          <div className="ocr-stage">
+            {/* LEFT - KTP visual */}
+            <div>
+              <div className="ocr-section-title">
+                <span className="dot cyan"></span>
+                {step===1?'Upload Foto KTP':'Scan KTP — Tesseract.js'}
+              </div>
+
+              {step===1 ? (
+                <div className="upload-area" onClick={()=>setStep(2)}>
+                  <div className="upload-icon">📷</div>
+                  <div style={{fontSize:13,fontWeight:600}}>Klik untuk mengambil foto KTP</div>
+                  <div style={{fontSize:11,color:'var(--text-lo)'}}>atau drop gambar di sini · JPG/PNG, max 5MB</div>
+                </div>
+              ) : (
+                <div className="ktp-frame">
+                  <div className="ktp-hd">
+                    <div className="ktp-prov">PROVINSI DKI JAKARTA<small>KOTA JAKARTA SELATAN</small></div>
+                    <div className="ktp-nik">{ocr.nik}</div>
+                  </div>
+                  <div className="ktp-body">
+                    <div className="ktp-photo">👤</div>
+                    <div className="ktp-fields">
+                      <div className="ktp-fld"><span className="ktp-lbl">Nama</span><span className="ktp-val">{ocr.name}</span></div>
+                      <div className="ktp-fld"><span className="ktp-lbl">Tmpt/Tgl</span><span className="ktp-val">{ocr.pob}, {ocr.dob}</span></div>
+                      <div className="ktp-fld"><span className="ktp-lbl">Jns Kel.</span><span className="ktp-val">{ocr.sex}</span></div>
+                      <div className="ktp-fld"><span className="ktp-lbl">Alamat</span><span className="ktp-val" style={{fontSize:7}}>{ocr.addr}</span></div>
+                      <div className="ktp-fld"><span className="ktp-lbl">Kel/Desa</span><span className="ktp-val">{ocr.village}</span></div>
+                      <div className="ktp-fld"><span className="ktp-lbl">Agama</span><span className="ktp-val">{ocr.religion}</span></div>
+                      <div className="ktp-fld"><span className="ktp-lbl">Pekerjaan</span><span className="ktp-val">{ocr.job}</span></div>
+                    </div>
+                  </div>
+                  {step===2 && (
+                    <div className="scan-overlay">
+                      <div className="scan-corners"><span></span></div>
+                      <div className="scan-line"></div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="tess-info" style={{marginTop:14}}>
+                <div className="tess-logo">T</div>
+                <div>
+                  <div style={{color:'var(--text-hi)',fontWeight:600,fontSize:12}}>Tesseract.js v5.1.1</div>
+                  <div style={{fontSize:10}}>Engine OCR · Bahasa: ind+eng · LSTM model</div>
+                </div>
+              </div>
+            </div>
+
+            {/* RIGHT - Extracted fields */}
+            <div className="ocr-panel">
+              <div className="ocr-section-title">
+                <span className="dot green"></span>Data Hasil Ekstraksi
+              </div>
+
+              <div className="ocr-status">
+                {step===2 ? (
+                  <>
+                    <div className="ocr-status-text"><div className="ocr-spinner"></div> Memproses image preprocessing & OCR...</div>
+                    <div className="ocr-progress"><div className="ocr-progress-fill" style={{width:`${progress}%`}}></div></div>
+                    <div className="ocr-pct">{progress}%</div>
+                  </>
+                ) : step>=3 ? (
+                  <>
+                    <div className="ocr-status-text" style={{color:'var(--green)'}}>✓ OCR Selesai · 13 field terdeteksi</div>
+                    <div className="ocr-pct" style={{color:'var(--green)'}}>96.4%</div>
+                  </>
+                ) : (
+                  <div className="ocr-status-text" style={{color:'var(--text-mid)'}}>⏳ Menunggu upload KTP...</div>
+                )}
+              </div>
+
+              <div className="field-grid">
+                <div className="ocr-field full">
+                  <div className="ocr-field-lbl">NIK <span className="ocr-conf high">99%</span></div>
+                  <div className="ocr-field-val">{step>=3?ocr.nik:'— — —'}</div>
+                </div>
+                <div className="ocr-field full">
+                  <div className="ocr-field-lbl">Nama Lengkap <span className="ocr-conf high">98%</span></div>
+                  <div className="ocr-field-val">{step>=3?ocr.name:'— — —'}</div>
+                </div>
+                <div className="ocr-field">
+                  <div className="ocr-field-lbl">TTL <span className="ocr-conf high">95%</span></div>
+                  <div className="ocr-field-val" style={{fontSize:11}}>{step>=3?`${ocr.pob}, ${ocr.dob}`:'—'}</div>
+                </div>
+                <div className="ocr-field">
+                  <div className="ocr-field-lbl">Jenis Kelamin <span className="ocr-conf high">99%</span></div>
+                  <div className="ocr-field-val">{step>=3?ocr.sex:'—'}</div>
+                </div>
+                <div className="ocr-field full">
+                  <div className="ocr-field-lbl">Alamat <span className="ocr-conf med">87%</span></div>
+                  <div className="ocr-field-val" style={{fontSize:11}}>{step>=3?`${ocr.addr}, ${ocr.village}, ${ocr.district}, ${ocr.city}`:'—'}</div>
+                </div>
+                <div className="ocr-field">
+                  <div className="ocr-field-lbl">Agama <span className="ocr-conf high">96%</span></div>
+                  <div className="ocr-field-val">{step>=3?ocr.religion:'—'}</div>
+                </div>
+                <div className="ocr-field">
+                  <div className="ocr-field-lbl">Pekerjaan <span className="ocr-conf med">82%</span></div>
+                  <div className="ocr-field-val" style={{fontSize:11}}>{step>=3?ocr.job:'—'}</div>
+                </div>
+              </div>
+
+              {step>=3 && (
+                <div style={{display:'flex',flexDirection:'column',gap:10}}>
+                  <div className="ocr-section-title" style={{margin:'4px 0 0'}}><span className="dot amber"></span>Detail Kunjungan</div>
+                  <div className="field-grid">
+                    <div>
+                      <div className="label">Unit Tujuan</div>
+                      <input className="input" defaultValue="A-22"/>
+                    </div>
+                    <div>
+                      <div className="label">Tuan Rumah</div>
+                      <input className="input" defaultValue="Pak Rahman"/>
+                    </div>
+                    <div style={{gridColumn:'1/-1'}}>
+                      <div className="label">Tujuan Kunjungan</div>
+                      <select className="select">
+                        <option>Tamu Keluarga</option><option>Bisnis</option><option>Kurir / Delivery</option>
+                        <option>Layanan (Tukang, AC, dll)</option><option>Lainnya</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div style={{display:'flex',gap:8,marginTop:'auto'}}>
+                {step>=3 ? (
+                  <>
+                    <div className="btn" style={{flex:1,justifyContent:'center'}} onClick={()=>setStep(2)}>↺ Scan Ulang</div>
+                    <div className="btn success" style={{flex:1,justifyContent:'center'}} onClick={()=>setStep(4)}>✓ Approve & Check-in</div>
+                  </>
+                ) : (
+                  <div className="btn" style={{flex:1,justifyContent:'center',opacity:0.5,pointerEvents:'none'}}>Tunggu OCR selesai...</div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Recent visitors */}
+        <div className="recent-card">
+          <div className="recent-hd">
+            <div style={{fontSize:13,fontWeight:700}}>Visitor Hari Ini</div>
+            <div style={{fontSize:11,color:'var(--text-lo)',fontFamily:'var(--font-mono)'}}>{RECENT.length} entry</div>
+          </div>
+          <div className="recent-list">
+            {RECENT.map((v,i)=>(
+              <div key={i} className="visitor-row">
+                <div className="visitor-avatar" style={{background:v.color}}>{initials(v.name)}</div>
+                <div className="visitor-info">
+                  <div className="visitor-name">{v.name}</div>
+                  <div className="visitor-meta">→ {v.unit} · {v.purpose}</div>
+                </div>
+                <div>
+                  <div className="visitor-time">{v.time}</div>
+                  <span className={`badge ${v.status==='in'?'green':'gray'}`} style={{marginTop:3,fontSize:8,padding:'2px 6px'}}>
+                    {v.status==='in'?'IN':'OUT'}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </AppShell>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>

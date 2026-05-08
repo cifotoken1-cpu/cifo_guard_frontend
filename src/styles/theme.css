@@ -1,0 +1,37 @@
+/* =============================================
+ * CIFO Theme — extracted from NEXUS GUARD mockup
+ * Cyberpunk dark, accent cyan
+ * ============================================= */
+
+:root {
+  /* Backgrounds */
+  --bg-deep: #060c1a;
+  --bg-panel: #0d1528;
+  --bg-card: #111d35;
+  --bg-hover: #162040;
+
+  /* Borders */
+  --border: rgba(255, 255, 255, 0.07);
+  --border-hi: rgba(255, 255, 255, 0.12);
+
+  /* Accent palette (oklch for vibrant, perceptually-uniform tones) */
+  --cyan: oklch(0.74 0.16 200);
+  --cyan-dim: oklch(0.45 0.10 200);
+  --amber: oklch(0.82 0.18 88);
+  --green: oklch(0.68 0.18 148);
+  --red: oklch(0.62 0.22 25);
+
+  /* Text */
+  --text-hi: #e8edf8;
+  --text-mid: #8a99b8;
+  --text-lo: #3a4868;
+
+  /* Fonts */
+  --font-ui: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+
+  /* Layout */
+  --topbar-h: 48px;
+  --sidebar-w: 190px;
+  --rightpanel-w: 310px;
+}

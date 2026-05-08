@@ -1,0 +1,164 @@
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+/* When inside fullscreen modal, expand grid */
+:global(.modal.fullscreen) .grid {
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+}
+
+.cell { aspect-ratio: 16 / 9; position: relative; }
+.featured { grid-column: 1 / -1; aspect-ratio: 16 / 9; }
+
+.cardWrapper {
+  position: absolute;
+  inset: 0;
+}
+
+.cardActions {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  gap: 6px;
+  opacity: 0;
+  transition: opacity 0.2s;
+  z-index: 10;
+}
+
+.cell:hover .cardActions {
+  opacity: 1;
+}
+
+.actionBtn {
+  padding: 6px 8px;
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(99, 179, 237, 0.3);
+  border-radius: 4px;
+  color: var(--cyan);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  backdrop-filter: blur(4px);
+}
+
+.actionBtn:hover {
+  background: rgba(99, 179, 237, 0.2);
+  border-color: var(--cyan);
+  transform: scale(1.1);
+}
+
+.empty {
+  padding: 40px;
+  text-align: center;
+  color: var(--text-lo);
+  font-size: 13px;
+  grid-column: 1 / -1;
+}
+
+.footerInner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  font-size: 11px;
+  color: var(--text-lo);
+  gap: 12px;
+}
+
+.footerInner strong {
+  color: var(--green);
+  font-family: var(--font-mono);
+}
+
+.addCameraBtn {
+  padding: 7px 12px;
+  border-radius: 6px;
+  background: var(--cyan);
+  color: var(--bg);
+  border: none;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.15s;
+  letter-spacing: 0.5px;
+}
+
+.addCameraBtn:hover {
+  background: var(--cyan-light);
+  transform: translateY(-1px);
+}
+
+.closeBtn {
+  padding: 7px 14px;
+  border-radius: 6px;
+  background: var(--bg-card);
+  color: var(--text-mid);
+  border: 1px solid var(--border);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.closeBtn:hover { background: var(--bg-hover); color: var(--text-hi); }
+
+.fullscreenBtn {
+  padding: 7px 10px;
+  border-radius: 6px;
+  background: var(--bg-card);
+  color: var(--text-mid);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.fullscreenBtn:hover { background: var(--bg-hover); color: var(--cyan); }
+
+/* Form Modal Overlay */
+.formOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.formModal {
+  width: 90%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}

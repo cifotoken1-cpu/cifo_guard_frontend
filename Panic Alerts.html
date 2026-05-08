@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>Panic Alerts — Nexus Guard</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>
+.pa-grid{display:grid;grid-template-columns:340px 1fr 360px;gap:14px;height:100%}
+
+.pa-list-card{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;display:flex;flex-direction:column;overflow:hidden}
+.pa-list-hd{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.pa-list-title{font-size:13px;font-weight:700}
+.pa-list{flex:1;overflow-y:auto;padding:8px}
+.alert{padding:11px 12px;border-radius:9px;margin-bottom:6px;cursor:pointer;border:1px solid var(--border);background:var(--bg-deep);transition:all 0.15s;border-left:3px solid var(--text-lo);position:relative}
+.alert:hover{background:var(--bg-hover)}
+.alert.selected{background:rgba(239,68,68,0.06);border-color:rgba(239,68,68,0.35);border-left-color:var(--red)}
+.alert.active{border-left-color:var(--red)}
+.alert.active::before{content:'';position:absolute;top:8px;right:10px;width:7px;height:7px;border-radius:50%;background:var(--red);animation:pulseRed 1.2s infinite}
+.alert.resolved{border-left-color:var(--green);opacity:0.7}
+.alert.investigating{border-left-color:var(--amber)}
+.alert-name{font-size:13px;font-weight:600}
+.alert-loc{font-size:10px;color:var(--text-mid);margin-top:3px;font-family:var(--font-mono)}
+.alert-time{font-size:9px;color:var(--text-lo);font-family:var(--font-mono);margin-top:3px}
+
+.pa-detail{background:var(--bg-card);border:1px solid var(--border);border-radius:14px;display:flex;flex-direction:column;overflow:hidden}
+.alarm-banner{padding:18px 22px;background:linear-gradient(135deg,oklch(0.40 0.20 25) 0%,oklch(0.25 0.16 15) 100%);border-bottom:1px solid rgba(239,68,68,0.3);position:relative;overflow:hidden}
+.alarm-banner::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 80% 50%,rgba(239,68,68,0.3),transparent 60%)}
+.alarm-banner-row{display:flex;align-items:center;gap:14px;position:relative}
+.alarm-icon{width:54px;height:54px;border-radius:14px;background:rgba(239,68,68,0.2);border:2px solid rgba(239,68,68,0.5);display:flex;align-items:center;justify-content:center;color:#fca5a5;animation:pulseRed 1.5s infinite}
+.alarm-icon svg{width:26px;height:26px}
+.alarm-status{font-size:10px;font-weight:700;letter-spacing:0.18em;color:#fecaca}
+.alarm-title{font-size:21px;font-weight:700;margin-top:3px;color:#fff;letter-spacing:-0.01em}
+.alarm-sub{font-size:12px;color:#fca5a5;margin-top:3px;font-family:var(--font-mono)}
+
+.detail-content{flex:1;overflow-y:auto;padding:18px;display:flex;flex-direction:column;gap:14px}
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.kpi{background:var(--bg-deep);border:1px solid var(--border);border-radius:9px;padding:10px 12px}
+.kpi-lbl{font-size:9px;color:var(--text-lo);letter-spacing:0.08em;text-transform:uppercase}
+.kpi-val{font-family:var(--font-mono);font-size:16px;font-weight:700;margin-top:3px;color:var(--cyan)}
+
+.scene-map{height:200px;border-radius:10px;background:var(--bg-deep);border:1px solid var(--border);position:relative;overflow:hidden}
+.live-feed{height:160px;border-radius:10px;background:#000;border:1px solid var(--border);position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center}
+
+.ai-block{background:linear-gradient(135deg,rgba(168,85,247,0.06) 0%,rgba(99,179,237,0.04) 100%);border:1px solid rgba(168,85,247,0.2);border-radius:11px;padding:14px}
+.ai-hd{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.ai-icon{width:24px;height:24px;border-radius:6px;background:linear-gradient(135deg,var(--purple),var(--cyan));display:flex;align-items:center;justify-content:center;font-size:12px}
+.ai-name{font-size:11px;font-weight:700;letter-spacing:0.06em;color:var(--purple)}
+.ai-subtitle{font-size:10px;color:var(--text-lo);margin-left:auto}
+.ai-line{padding:6px 0;font-size:12px;color:var(--text-hi);display:flex;align-items:flex-start;gap:8px;line-height:1.4;text-wrap:pretty}
+.ai-line::before{content:'›';color:var(--purple);font-weight:700;flex-shrink:0;margin-top:1px}
+.ai-confidence{display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding-top:10px;border-top:1px solid rgba(168,85,247,0.15);font-size:10px;color:var(--text-lo)}
+.ai-bar{flex:1;height:4px;background:var(--bg-deep);border-radius:2px;margin:0 10px;overflow:hidden}
+.ai-bar-fill{height:100%;background:linear-gradient(90deg,var(--purple),var(--cyan));border-radius:2px}
+
+.bcast-card{background:var(--bg-card);border:1px solid var(--border);border-radius:14px;display:flex;flex-direction:column;overflow:hidden}
+.bcast-hd{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.bcast-title{font-size:13px;font-weight:700;display:flex;align-items:center;gap:8px}
+.bcast-title::before{content:'';width:8px;height:8px;background:var(--red);border-radius:50%;animation:pulseRed 1s infinite}
+.bcast-body{flex:1;overflow-y:auto;padding:0}
+
+.recipient{padding:11px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;font-size:12px}
+.rcp-avatar{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:10px;flex-shrink:0}
+.rcp-name{font-weight:600;font-size:12px}
+.rcp-meta{font-size:10px;color:var(--text-lo);font-family:var(--font-mono)}
+.rcp-dist{font-family:var(--font-mono);font-size:10px;color:var(--cyan);margin-left:auto}
+.rcp-status{font-size:10px;padding:3px 8px;border-radius:5px;font-weight:600;letter-spacing:0.04em}
+.rcp-status.received{background:rgba(34,197,94,0.1);color:var(--green)}
+.rcp-status.dispatch{background:rgba(99,179,237,0.1);color:var(--cyan)}
+.rcp-status.delivered{background:rgba(251,191,36,0.1);color:var(--amber)}
+.rcp-status.pending{background:var(--bg-deep);color:var(--text-lo)}
+
+.bcast-actions{padding:14px 16px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:8px}
+
+.audio-wave{display:flex;gap:2px;align-items:center;height:18px;flex:1}
+.audio-wave span{flex:1;background:var(--cyan);border-radius:1px;animation:waveAnim 1s infinite ease-in-out}
+@keyframes waveAnim{0%,100%{height:20%}50%{height:90%}}
+.audio-wave span:nth-child(2){animation-delay:0.1s}
+.audio-wave span:nth-child(3){animation-delay:0.2s}
+.audio-wave span:nth-child(4){animation-delay:0.3s}
+.audio-wave span:nth-child(5){animation-delay:0.4s}
+.audio-wave span:nth-child(6){animation-delay:0.5s}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" src="app-shell.jsx"></script>
+<script type="text/babel">
+const { useState, useEffect } = React;
+
+const ALARMS = [
+  {id:'PAN-2026-0089',name:'Bu Sari Wijaya',unit:'C-12',location:'Rumah C-12, Blok C',status:'active',priority:'critical',timeAgo:'2 menit lalu',rawTime:'08:42:15',phone:'+62 812-1111-2222',color:'oklch(0.65 0.18 350)',deviceId:'PND-C12-01',battery:78,reason:'Tombol panic ditekan 3x'},
+  {id:'PAN-2026-0088',name:'Pak Hartono',unit:'B-08',location:'Rumah B-08, Blok B',status:'investigating',priority:'high',timeAgo:'14 menit lalu',rawTime:'08:30:00',phone:'+62 812-3333-4444',color:'oklch(0.55 0.16 60)',deviceId:'PND-B08-01',battery:45,reason:'Voice trigger detected'},
+  {id:'PAN-2026-0087',name:'Anak (smartwatch)',unit:'A-22',location:'Taman Bermain',status:'resolved',priority:'medium',timeAgo:'1 jam lalu',rawTime:'07:42:00',phone:'+62 812-5555-6666',color:'oklch(0.65 0.18 290)',deviceId:'WCH-A22-02',battery:62,reason:'False trigger - jatuh ringan'},
+  {id:'PAN-2026-0086',name:'Bu Lina',unit:'D-15',location:'Lobby Blok D',status:'resolved',priority:'low',timeAgo:'3 jam lalu',rawTime:'05:42:00',phone:'+62 812-7777-8888',color:'oklch(0.68 0.16 15)',deviceId:'PND-D15-01',battery:88,reason:'Test panic button'},
+];
+
+const RECIPIENTS = [
+  {name:'Budi Santoso',role:'Senior Guard',dist:'120 m',status:'dispatch',color:'oklch(0.65 0.18 30)',time:'08:42:30'},
+  {name:'Siti Nurhaliza',role:'Patrol Guard',dist:'280 m',status:'dispatch',color:'oklch(0.65 0.18 290)',time:'08:42:32'},
+  {name:'Joko Widodo',role:'Senior Guard',dist:'420 m',status:'received',color:'oklch(0.55 0.16 60)',time:'08:42:31'},
+  {name:'Ahmad Fauzi',role:'CCTV Operator',dist:'CCTV',status:'received',color:'oklch(0.60 0.16 200)',time:'08:42:30'},
+  {name:'Pos Polisi Sektor 12',role:'External',dist:'1.4 km',status:'delivered',color:'oklch(0.50 0.16 240)',time:'08:42:45'},
+  {name:'Maya R. (Manager)',role:'Supervisor',dist:'On Call',status:'received',color:'oklch(0.65 0.18 320)',time:'08:42:30'},
+  {name:'Damkar Terdekat',role:'External',dist:'2.8 km',status:'pending',color:'oklch(0.55 0.18 30)',time:'—'},
+];
+
+function initials(n){return n.split(' ').slice(0,2).map(x=>x[0]).join('')}
+
+function App(){
+  const [selected, setSelected] = useState(ALARMS[0]);
+  const [tick, setTick] = useState(0);
+  useEffect(()=>{const t=setInterval(()=>setTick(x=>x+1),1000);return()=>clearInterval(t)},[]);
+
+  const sec = (tick * 1) + 142;
+  const m = Math.floor(sec/60), s = sec%60;
+  const elapsedStr = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+
+  return (
+    <AppShell active="panic" title="Sistem Panic Alert" subtitle="Panic button dengan analisis AI dan broadcast real-time"
+      headerRight={<><div className="btn">📊 Riwayat</div><div className="btn primary">⚙ Konfigurasi</div></>}>
+
+      <div className="pa-grid">
+        {/* List */}
+        <div className="pa-list-card">
+          <div className="pa-list-hd">
+            <div className="pa-list-title">Panic Alerts</div>
+            <span className="badge red"><span className="dot red"></span> 1 AKTIF</span>
+          </div>
+          <div className="pa-list">
+            {ALARMS.map(a=>(
+              <div key={a.id}
+                className={`alert ${a.status} ${selected.id===a.id?'selected':''}`}
+                onClick={()=>setSelected(a)}>
+                <div style={{display:'flex',alignItems:'center',gap:9}}>
+                  <div className="rcp-avatar" style={{background:a.color}}>{initials(a.name)}</div>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div className="alert-name">{a.name}</div>
+                    <div className="alert-loc">📍 {a.unit} · {a.location.split(',')[0]}</div>
+                  </div>
+                </div>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginTop:8}}>
+                  <div className="alert-time">{a.rawTime} · {a.timeAgo}</div>
+                  <span className={`badge ${a.status==='active'?'red':a.status==='investigating'?'amber':'green'}`}>
+                    {a.status==='active'?'AKTIF':a.status==='investigating'?'INVESTIGASI':'SELESAI'}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Detail */}
+        <div className="pa-detail">
+          <div className="alarm-banner">
+            <div className="alarm-banner-row">
+              <div className="alarm-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3" fill="currentColor"/></svg>
+              </div>
+              <div style={{flex:1}}>
+                <div className="alarm-status">⚡ PANIC ALERT AKTIF · {selected.id}</div>
+                <div className="alarm-title">{selected.name} — {selected.unit}</div>
+                <div className="alarm-sub">{selected.location} · {selected.reason}</div>
+              </div>
+              <div style={{textAlign:'right'}}>
+                <div style={{fontSize:10,color:'#fca5a5',letterSpacing:'0.1em'}}>ELAPSED</div>
+                <div style={{fontFamily:'var(--font-mono)',fontSize:32,fontWeight:700,color:'#fff',letterSpacing:'-0.02em'}}>{elapsedStr}</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="detail-content">
+            <div className="kpi-row">
+              <div className="kpi"><div className="kpi-lbl">Device</div><div className="kpi-val" style={{fontSize:12}}>{selected.deviceId}</div></div>
+              <div className="kpi"><div className="kpi-lbl">Battery</div><div className="kpi-val" style={{color:selected.battery<50?'var(--amber)':'var(--green)'}}>{selected.battery}%</div></div>
+              <div className="kpi"><div className="kpi-lbl">Phone</div><div className="kpi-val" style={{fontSize:11}}>{selected.phone}</div></div>
+              <div className="kpi"><div className="kpi-lbl">Responder</div><div className="kpi-val">3</div></div>
+            </div>
+
+            {/* AI Analysis */}
+            <div className="ai-block">
+              <div className="ai-hd">
+                <div className="ai-icon">✦</div>
+                <div className="ai-name">AI THREAT ANALYSIS</div>
+                <div className="ai-subtitle">Powered by Sentinel-7</div>
+              </div>
+              <div className="ai-line">Pola tekan tombol berulang (3×) dalam 4 detik — konsisten dengan distress signal manual.</div>
+              <div className="ai-line">Mikrofon perangkat menangkap suara pecah kaca pada t=0:08, kemungkinan break-in.</div>
+              <div className="ai-line">Cross-check CCTV gerbang: 2 individu masuk pukul 03:14 belum tercatat keluar.</div>
+              <div className="ai-line">Riwayat unit C-12: 0 panic dalam 18 bulan — bukan false-trigger biasa.</div>
+              <div className="ai-line"><b style={{color:'#fff'}}>Rekomendasi:</b> Dispatch 2 senior guard, kontak Polsek, aktifkan CCTV record-priority Blok C.</div>
+              <div className="ai-confidence">
+                <span>Confidence Score</span>
+                <div className="ai-bar"><div className="ai-bar-fill" style={{width:'94%'}}></div></div>
+                <span style={{color:'var(--purple)',fontWeight:700,fontFamily:'var(--font-mono)'}}>94%</span>
+              </div>
+            </div>
+
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+              <div>
+                <div className="card-title">Lokasi (Live GPS)</div>
+                <div className="scene-map">
+                  <svg viewBox="0 0 380 200" width="100%" height="100%" preserveAspectRatio="none">
+                    <defs>
+                      <pattern id="g2" width="20" height="20" patternUnits="userSpaceOnUse">
+                        <path d="M 20 0 L 0 0 0 20" fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="1"/>
+                      </pattern>
+                    </defs>
+                    <rect width="380" height="200" fill="url(#g2)"/>
+                    <line x1="0" y1="100" x2="380" y2="100" stroke="rgba(99,179,237,0.15)" strokeWidth="2"/>
+                    <line x1="190" y1="0" x2="190" y2="200" stroke="rgba(99,179,237,0.15)" strokeWidth="2"/>
+                    <rect x="20" y="20" width="60" height="60" rx="3" fill="rgba(99,179,237,0.06)" stroke="rgba(99,179,237,0.2)"/>
+                    <rect x="100" y="20" width="60" height="60" rx="3" fill="rgba(99,179,237,0.06)" stroke="rgba(99,179,237,0.2)"/>
+                    <rect x="220" y="20" width="60" height="60" rx="3" fill="rgba(239,68,68,0.18)" stroke="rgba(239,68,68,0.5)"/>
+                    <rect x="300" y="20" width="60" height="60" rx="3" fill="rgba(99,179,237,0.06)" stroke="rgba(99,179,237,0.2)"/>
+                    <text x="250" y="55" fill="#fca5a5" fontSize="10" textAnchor="middle" fontWeight="700">C-12</text>
+                    {/* responders moving */}
+                    <circle cx="50" cy="120" r="5" fill="oklch(0.65 0.18 30)"><animate attributeName="cx" from="50" to="220" dur="6s" repeatCount="indefinite"/></circle>
+                    <circle cx="350" cy="150" r="5" fill="oklch(0.65 0.18 290)"><animate attributeName="cx" from="350" to="280" dur="8s" repeatCount="indefinite"/></circle>
+                    {/* alarm pulse */}
+                    <circle cx="250" cy="50" r="20" fill="rgba(239,68,68,0.2)">
+                      <animate attributeName="r" from="15" to="40" dur="1.2s" repeatCount="indefinite"/>
+                      <animate attributeName="opacity" from="0.7" to="0" dur="1.2s" repeatCount="indefinite"/>
+                    </circle>
+                    <circle cx="250" cy="50" r="7" fill="var(--red)"/>
+                    <circle cx="250" cy="50" r="3" fill="#fff"/>
+                  </svg>
+                </div>
+              </div>
+              <div>
+                <div className="card-title">Audio Stream (Live)</div>
+                <div className="live-feed" style={{flexDirection:'column',gap:10}}>
+                  <div style={{display:'flex',alignItems:'center',gap:10,padding:'0 20px',width:'100%'}}>
+                    <span style={{fontSize:18,color:'var(--red)'}}>●</span>
+                    <span style={{fontSize:11,fontWeight:700,letterSpacing:'0.08em',color:'#fca5a5'}}>LIVE STREAM</span>
+                    <div className="audio-wave"><span/><span/><span/><span/><span/><span/></div>
+                  </div>
+                  <div style={{fontFamily:'var(--font-mono)',fontSize:10,color:'var(--text-lo)',padding:'0 20px',textAlign:'center',lineHeight:1.5}}>
+                    Transcript: "...tolong... ada orang... pintu belakang..."
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Broadcast */}
+        <div className="bcast-card">
+          <div className="bcast-hd">
+            <div className="bcast-title">REAL-TIME BROADCAST</div>
+            <span style={{fontSize:10,color:'var(--text-lo)',fontFamily:'var(--font-mono)'}}>{RECIPIENTS.length} target</span>
+          </div>
+          <div className="bcast-body">
+            {RECIPIENTS.map((r,i)=>(
+              <div key={i} className="recipient">
+                <div className="rcp-avatar" style={{background:r.color}}>{initials(r.name)}</div>
+                <div style={{flex:1,minWidth:0}}>
+                  <div className="rcp-name">{r.name}</div>
+                  <div className="rcp-meta">{r.role} · {r.time}</div>
+                </div>
+                <div className="rcp-dist">{r.dist}</div>
+                <div className={`rcp-status ${r.status}`}>{
+                  r.status==='received'?'✓ Diterima':
+                  r.status==='dispatch'?'→ On Route':
+                  r.status==='delivered'?'✓ Terkirim':
+                  '⏳ Pending'
+                }</div>
+              </div>
+            ))}
+          </div>
+          <div className="bcast-actions">
+            <div className="btn danger" style={{justifyContent:'center',padding:'10px'}}>📢 Broadcast Ulang ke Semua</div>
+            <div style={{display:'flex',gap:8}}>
+              <div className="btn primary" style={{flex:1,justifyContent:'center'}}>📞 Conference Call</div>
+              <div className="btn" style={{flex:1,justifyContent:'center'}}>🚓 Eskalasi POLRI</div>
+            </div>
+            <div className="btn success" style={{justifyContent:'center'}}>✓ Tandai Terkendali</div>
+          </div>
+        </div>
+      </div>
+    </AppShell>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>

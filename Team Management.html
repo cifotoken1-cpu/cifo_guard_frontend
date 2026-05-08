@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>Team Management — Nexus Guard</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>
+.tm-grid{display:grid;grid-template-columns:1fr 380px;gap:16px;height:100%}
+.tm-list{display:flex;flex-direction:column;gap:14px}
+.tm-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.tm-stat{background:var(--bg-card);border:1px solid var(--border);border-radius:11px;padding:12px 14px;position:relative;overflow:hidden}
+.tm-stat::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.tm-stat.green::before{background:var(--green)}.tm-stat.cyan::before{background:var(--cyan)}.tm-stat.amber::before{background:var(--amber)}.tm-stat.gray::before{background:var(--text-lo)}
+.tm-stat-num{font-family:var(--font-mono);font-size:24px;font-weight:700;line-height:1}
+.tm-stat-num.green{color:var(--green)}.tm-stat-num.cyan{color:var(--cyan)}.tm-stat-num.amber{color:var(--amber)}.tm-stat-num.gray{color:var(--text-mid)}
+.tm-stat-lbl{font-size:10px;color:var(--text-lo);letter-spacing:0.05em;margin-top:4px}
+.tm-stat-sub{font-size:9px;color:var(--text-lo);margin-top:2px;font-family:var(--font-mono)}
+
+.tm-toolbar{display:flex;gap:8px;align-items:center}
+.tm-toolbar .input{flex:1}
+.tm-tabs{display:flex;gap:4px;background:var(--bg-card);border:1px solid var(--border);border-radius:9px;padding:3px}
+.tm-tab{padding:6px 12px;border-radius:6px;font-size:11px;font-weight:600;color:var(--text-mid);cursor:pointer;transition:all 0.15s}
+.tm-tab.active{background:var(--bg-hover);color:var(--text-hi)}
+
+.member-row{display:grid;grid-template-columns:48px 1.4fr 1fr 1fr 1fr auto;gap:12px;align-items:center;padding:12px 14px;background:var(--bg-card);border:1px solid var(--border);border-radius:11px;cursor:pointer;transition:all 0.15s}
+.member-row:hover{background:var(--bg-hover);border-color:var(--border-hi)}
+.member-row.selected{background:rgba(99,179,237,0.06);border-color:rgba(99,179,237,0.28)}
+.avatar{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:13px;flex-shrink:0;position:relative}
+.avatar::after{content:'';position:absolute;bottom:-1px;right:-1px;width:11px;height:11px;border-radius:50%;border:2px solid var(--bg-card)}
+.avatar.online::after{background:var(--green)}.avatar.busy::after{background:var(--amber)}.avatar.offline::after{background:var(--text-lo)}
+.member-name{font-size:13px;font-weight:600;color:var(--text-hi)}
+.member-role{font-size:11px;color:var(--text-lo);margin-top:2px}
+.member-meta{font-size:11px;color:var(--text-mid)}
+.member-meta-lbl{font-size:9px;color:var(--text-lo);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:2px}
+
+.detail-card{background:var(--bg-card);border:1px solid var(--border);border-radius:14px;overflow:hidden;display:flex;flex-direction:column;height:100%}
+.detail-hero{padding:20px;background:linear-gradient(135deg,oklch(0.20 0.06 230) 0%,oklch(0.12 0.04 240) 100%);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:14px}
+.detail-avatar{width:60px;height:60px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:20px;border:2px solid rgba(99,179,237,0.3)}
+.detail-name{font-size:16px;font-weight:700}
+.detail-role{font-size:12px;color:var(--text-mid);margin-top:2px}
+.detail-id{font-family:var(--font-mono);font-size:10px;color:var(--text-lo);margin-top:4px;letter-spacing:0.05em}
+.detail-body{padding:16px 20px;display:flex;flex-direction:column;gap:14px;overflow-y:auto;flex:1}
+.detail-row{display:flex;justify-content:space-between;align-items:center;font-size:12px}
+.detail-row .lbl{color:var(--text-lo);font-size:11px}
+.detail-row .val{color:var(--text-hi);font-weight:500;font-family:var(--font-mono);font-size:11px}
+
+.shift-bar{height:34px;background:var(--bg-deep);border-radius:8px;display:flex;overflow:hidden;border:1px solid var(--border);position:relative}
+.shift-seg{flex:1;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:600;color:rgba(255,255,255,0.4);border-right:1px solid var(--border);position:relative}
+.shift-seg:last-child{border-right:none}
+.shift-seg.active{color:#fff}
+.shift-seg.morning.active{background:linear-gradient(180deg,oklch(0.55 0.14 60),oklch(0.45 0.12 50))}
+.shift-seg.afternoon.active{background:linear-gradient(180deg,oklch(0.55 0.14 30),oklch(0.45 0.12 20))}
+.shift-seg.night.active{background:linear-gradient(180deg,oklch(0.40 0.14 280),oklch(0.30 0.12 270))}
+.shift-current{position:absolute;top:0;bottom:0;width:2px;background:var(--cyan);box-shadow:0 0 8px var(--cyan);z-index:2}
+
+.task-list{display:flex;flex-direction:column;gap:6px}
+.task{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;background:var(--bg-deep);border:1px solid var(--border);font-size:12px}
+.task-cb{width:14px;height:14px;border-radius:4px;border:1.5px solid var(--text-lo);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:9px;color:#fff}
+.task-cb.done{background:var(--green);border-color:var(--green)}
+.task-cb.in-progress{background:rgba(251,191,36,0.2);border-color:var(--amber)}
+.task.done{color:var(--text-lo);text-decoration:line-through}
+.task-time{margin-left:auto;font-family:var(--font-mono);font-size:10px;color:var(--text-lo)}
+
+.mini-map{height:160px;border-radius:10px;background:var(--bg-deep);border:1px solid var(--border);position:relative;overflow:hidden}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" src="app-shell.jsx"></script>
+<script type="text/babel">
+const { useState } = React;
+
+const TEAM = [
+  {id:'GRD-001',name:'Budi Santoso',role:'Senior Guard',shift:'morning',status:'online',location:'Pos 1 - Gerbang Utama',lastSeen:'Sekarang',color:'oklch(0.65 0.18 30)',phone:'+62 812-3456-1001',hours:'06:00 - 14:00',tasks:5,done:4},
+  {id:'GRD-002',name:'Siti Nurhaliza',role:'Patrol Guard',shift:'morning',status:'online',location:'Patroli Blok C-D',lastSeen:'2 menit lalu',color:'oklch(0.65 0.18 290)',phone:'+62 812-3456-1002',hours:'06:00 - 14:00',tasks:6,done:3},
+  {id:'GRD-003',name:'Ahmad Fauzi',role:'CCTV Operator',shift:'morning',status:'busy',location:'Ruang CCTV',lastSeen:'Sekarang',color:'oklch(0.60 0.16 200)',phone:'+62 812-3456-1003',hours:'06:00 - 14:00',tasks:3,done:2},
+  {id:'GRD-004',name:'Dewi Kartika',role:'Visitor Officer',shift:'afternoon',status:'online',location:'Pos 1 - Reception',lastSeen:'Sekarang',color:'oklch(0.68 0.16 350)',phone:'+62 812-3456-1004',hours:'14:00 - 22:00',tasks:8,done:5},
+  {id:'GRD-005',name:'Rian Pratama',role:'Patrol Guard',shift:'afternoon',status:'online',location:'Patroli Blok A-B',lastSeen:'4 menit lalu',color:'oklch(0.55 0.14 140)',phone:'+62 812-3456-1005',hours:'14:00 - 22:00',tasks:6,done:4},
+  {id:'GRD-006',name:'Joko Widodo',role:'Senior Guard',shift:'afternoon',status:'busy',location:'Pos 2 - Gerbang Belakang',lastSeen:'Sekarang',color:'oklch(0.55 0.16 60)',phone:'+62 812-3456-1006',hours:'14:00 - 22:00',tasks:5,done:3},
+  {id:'GRD-007',name:'Maya Putri',role:'Night Patrol',shift:'night',status:'offline',location:'Off duty',lastSeen:'8 jam lalu',color:'oklch(0.60 0.18 320)',phone:'+62 812-3456-1007',hours:'22:00 - 06:00',tasks:7,done:7},
+  {id:'GRD-008',name:'Bambang Wijaya',role:'Night Supervisor',shift:'night',status:'offline',location:'Off duty',lastSeen:'8 jam lalu',color:'oklch(0.50 0.14 240)',phone:'+62 812-3456-1008',hours:'22:00 - 06:00',tasks:4,done:4},
+  {id:'GRD-009',name:'Indah Sari',role:'CCTV Operator',shift:'night',status:'offline',location:'Off duty',lastSeen:'8 jam lalu',color:'oklch(0.65 0.16 5)',phone:'+62 812-3456-1009',hours:'22:00 - 06:00',tasks:5,done:5},
+  {id:'GRD-010',name:'Hendra Kusuma',role:'Patrol Guard',shift:'morning',status:'online',location:'Patroli Perimeter',lastSeen:'1 menit lalu',color:'oklch(0.55 0.14 100)',phone:'+62 812-3456-1010',hours:'06:00 - 14:00',tasks:6,done:5},
+  {id:'GRD-011',name:'Lina Marlina',role:'Visitor Officer',shift:'morning',status:'online',location:'Pos 1 - Reception',lastSeen:'Sekarang',color:'oklch(0.68 0.16 15)',phone:'+62 812-3456-1011',hours:'06:00 - 14:00',tasks:9,done:6},
+  {id:'GRD-012',name:'Yusuf Maulana',role:'Patrol Guard',shift:'afternoon',status:'busy',location:'Investigasi Blok E',lastSeen:'5 menit lalu',color:'oklch(0.55 0.16 215)',phone:'+62 812-3456-1012',hours:'14:00 - 22:00',tasks:4,done:2},
+];
+
+const TASKS = {
+  'GRD-001':[
+    {id:1,name:'Cek pintu gerbang utama',time:'06:15',status:'done'},
+    {id:2,name:'Briefing pagi tim shift',time:'06:30',status:'done'},
+    {id:3,name:'Patroli lobby & parkir VIP',time:'08:00',status:'done'},
+    {id:4,name:'Inspeksi sistem CCTV gate',time:'10:00',status:'done'},
+    {id:5,name:'Laporan harian ke supervisor',time:'13:30',status:'in-progress'},
+  ],
+  'GRD-002':[
+    {id:1,name:'Patroli Blok C - putaran 1',time:'06:30',status:'done'},
+    {id:2,name:'Patroli Blok D - putaran 1',time:'07:30',status:'done'},
+    {id:3,name:'Cek lampu jalan blok C-D',time:'08:30',status:'done'},
+    {id:4,name:'Patroli Blok C - putaran 2',time:'10:30',status:'in-progress'},
+    {id:5,name:'Patroli Blok D - putaran 2',time:'11:30',status:'pending'},
+    {id:6,name:'Laporan akhir shift',time:'13:30',status:'pending'},
+  ],
+};
+function getTasks(id){return TASKS[id] || [
+  {id:1,name:'Briefing pagi',time:'06:30',status:'done'},
+  {id:2,name:'Patroli area tugas',time:'08:00',status:'done'},
+  {id:3,name:'Pengecekan sistem',time:'10:00',status:'in-progress'},
+  {id:4,name:'Laporan akhir shift',time:'13:30',status:'pending'},
+];}
+
+function initials(n){return n.split(' ').slice(0,2).map(x=>x[0]).join('')}
+
+function App(){
+  const [filter, setFilter] = useState('all'); // all | online | busy | offline
+  const [shift, setShift] = useState('all');
+  const [search, setSearch] = useState('');
+  const [selected, setSelected] = useState(TEAM[0]);
+
+  const filtered = TEAM.filter(m => {
+    if (filter !== 'all' && m.status !== filter) return false;
+    if (shift !== 'all' && m.shift !== shift) return false;
+    if (search && !m.name.toLowerCase().includes(search.toLowerCase())) return false;
+    return true;
+  });
+
+  const counts = {
+    online: TEAM.filter(m=>m.status==='online').length,
+    busy: TEAM.filter(m=>m.status==='busy').length,
+    offline: TEAM.filter(m=>m.status==='offline').length,
+  };
+
+  const tasks = getTasks(selected.id);
+  const taskDone = tasks.filter(t=>t.status==='done').length;
+
+  return (
+    <AppShell active="team" title="Manajemen Tim Keamanan" subtitle="Tracking lokasi real-time, shift, dan status tugas tim">
+      <div className="tm-grid">
+        <div className="tm-list">
+
+          <div className="tm-stats">
+            <div className="tm-stat green">
+              <div className="tm-stat-num green">{counts.online}</div>
+              <div className="tm-stat-lbl">Online & Aktif</div>
+              <div className="tm-stat-sub">Bertugas saat ini</div>
+            </div>
+            <div className="tm-stat amber">
+              <div className="tm-stat-num amber">{counts.busy}</div>
+              <div className="tm-stat-lbl">Sibuk / Investigasi</div>
+              <div className="tm-stat-sub">Menangani tugas</div>
+            </div>
+            <div className="tm-stat gray">
+              <div className="tm-stat-num gray">{counts.offline}</div>
+              <div className="tm-stat-lbl">Off Duty</div>
+              <div className="tm-stat-sub">Shift malam istirahat</div>
+            </div>
+            <div className="tm-stat cyan">
+              <div className="tm-stat-num cyan">{TEAM.length}</div>
+              <div className="tm-stat-lbl">Total Personil</div>
+              <div className="tm-stat-sub">3 shift bergilir</div>
+            </div>
+          </div>
+
+          <div className="tm-toolbar">
+            <input className="input" placeholder="Cari nama anggota..." value={search} onChange={e=>setSearch(e.target.value)}/>
+            <div className="tm-tabs">
+              {['all','online','busy','offline'].map(s=>(
+                <div key={s} className={`tm-tab ${filter===s?'active':''}`} onClick={()=>setFilter(s)}>
+                  {s==='all'?'Semua':s==='online'?'Online':s==='busy'?'Sibuk':'Offline'}
+                </div>
+              ))}
+            </div>
+            <div className="tm-tabs">
+              {['all','morning','afternoon','night'].map(s=>(
+                <div key={s} className={`tm-tab ${shift===s?'active':''}`} onClick={()=>setShift(s)}>
+                  {s==='all'?'Semua Shift':s==='morning'?'Pagi':s==='afternoon'?'Siang':'Malam'}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div style={{display:'flex',flexDirection:'column',gap:6}}>
+            {filtered.map(m=>(
+              <div key={m.id}
+                className={`member-row ${selected.id===m.id?'selected':''}`}
+                onClick={()=>setSelected(m)}>
+                <div className={`avatar ${m.status}`} style={{background:m.color}}>{initials(m.name)}</div>
+                <div>
+                  <div className="member-name">{m.name}</div>
+                  <div className="member-role">{m.role} · {m.id}</div>
+                </div>
+                <div>
+                  <div className="member-meta-lbl">Shift</div>
+                  <div className="member-meta">{m.hours}</div>
+                </div>
+                <div>
+                  <div className="member-meta-lbl">Lokasi</div>
+                  <div className="member-meta">{m.location}</div>
+                </div>
+                <div>
+                  <div className="member-meta-lbl">Last Seen</div>
+                  <div className="member-meta">{m.lastSeen}</div>
+                </div>
+                <div>
+                  <span className={`badge ${m.status==='online'?'green':m.status==='busy'?'amber':'gray'}`}>
+                    <span className={`dot ${m.status==='online'?'green':m.status==='busy'?'amber':'gray'}`}></span>
+                    {m.status==='online'?'Online':m.status==='busy'?'Sibuk':'Offline'}
+                  </span>
+                </div>
+              </div>
+            ))}
+            {filtered.length===0 && (
+              <div style={{textAlign:'center',padding:40,color:'var(--text-lo)',fontSize:13}}>
+                Tidak ada anggota yang cocok dengan filter
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* DETAIL CARD */}
+        <div className="detail-card">
+          <div className="detail-hero">
+            <div className="detail-avatar" style={{background:selected.color}}>{initials(selected.name)}</div>
+            <div style={{flex:1}}>
+              <div className="detail-name">{selected.name}</div>
+              <div className="detail-role">{selected.role}</div>
+              <div className="detail-id">{selected.id} · {selected.phone}</div>
+            </div>
+            <span className={`badge ${selected.status==='online'?'green':selected.status==='busy'?'amber':'gray'}`}>
+              <span className={`dot ${selected.status==='online'?'green':selected.status==='busy'?'amber':'gray'}`}></span>
+              {selected.status==='online'?'Online':selected.status==='busy'?'Sibuk':'Offline'}
+            </span>
+          </div>
+
+          <div className="detail-body">
+            <div>
+              <div className="card-title">Shift Schedule</div>
+              <div className="shift-bar">
+                <div className={`shift-seg morning ${selected.shift==='morning'?'active':''}`}>06-14</div>
+                <div className={`shift-seg afternoon ${selected.shift==='afternoon'?'active':''}`}>14-22</div>
+                <div className={`shift-seg night ${selected.shift==='night'?'active':''}`}>22-06</div>
+                <div className="shift-current" style={{left:`${(new Date().getHours()/24)*100}%`}}></div>
+              </div>
+            </div>
+
+            <div>
+              <div className="card-title">Lokasi Saat Ini</div>
+              <div className="mini-map">
+                <svg viewBox="0 0 380 160" width="100%" height="100%" preserveAspectRatio="none">
+                  <defs>
+                    <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+                      <path d="M 20 0 L 0 0 0 20" fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="1"/>
+                    </pattern>
+                  </defs>
+                  <rect width="380" height="160" fill="url(#grid)"/>
+                  {/* roads */}
+                  <line x1="0" y1="80" x2="380" y2="80" stroke="rgba(99,179,237,0.15)" strokeWidth="2"/>
+                  <line x1="190" y1="0" x2="190" y2="160" stroke="rgba(99,179,237,0.15)" strokeWidth="2"/>
+                  {/* blocks */}
+                  <rect x="20" y="20" width="60" height="40" rx="3" fill="rgba(99,179,237,0.06)" stroke="rgba(99,179,237,0.2)"/>
+                  <rect x="100" y="20" width="60" height="40" rx="3" fill="rgba(99,179,237,0.06)" stroke="rgba(99,179,237,0.2)"/>
+                  <rect x="220" y="20" width="60" height="40" rx="3" fill="rgba(99,179,237,0.06)" stroke="rgba(99,179,237,0.2)"/>
+                  <rect x="300" y="20" width="60" height="40" rx="3" fill="rgba(99,179,237,0.06)" stroke="rgba(99,179,237,0.2)"/>
+                  <rect x="20" y="100" width="60" height="40" rx="3" fill="rgba(99,179,237,0.06)" stroke="rgba(99,179,237,0.2)"/>
+                  <rect x="100" y="100" width="60" height="40" rx="3" fill="rgba(99,179,237,0.06)" stroke="rgba(99,179,237,0.2)"/>
+                  <text x="50" y="44" fill="var(--text-lo)" fontSize="9" textAnchor="middle">Blok A</text>
+                  <text x="130" y="44" fill="var(--text-lo)" fontSize="9" textAnchor="middle">Blok B</text>
+                  <text x="250" y="44" fill="var(--text-lo)" fontSize="9" textAnchor="middle">Blok C</text>
+                  <text x="330" y="44" fill="var(--text-lo)" fontSize="9" textAnchor="middle">Blok D</text>
+                  {/* pin */}
+                  <circle cx="130" cy="120" r="14" fill="rgba(99,179,237,0.15)">
+                    <animate attributeName="r" from="10" to="22" dur="1.5s" repeatCount="indefinite"/>
+                    <animate attributeName="opacity" from="0.6" to="0" dur="1.5s" repeatCount="indefinite"/>
+                  </circle>
+                  <circle cx="130" cy="120" r="6" fill={selected.color}/>
+                  <circle cx="130" cy="120" r="3" fill="#fff"/>
+                </svg>
+                <div style={{position:'absolute',bottom:8,left:10,fontSize:10,color:'var(--text-mid)',fontFamily:'var(--font-mono)'}}>
+                  📍 {selected.location}
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <div className="card-title" style={{display:'flex',justifyContent:'space-between'}}>
+                <span>Tugas Hari Ini</span>
+                <span style={{color:'var(--cyan)'}}>{taskDone}/{tasks.length}</span>
+              </div>
+              <div className="task-list">
+                {tasks.map(t=>(
+                  <div key={t.id} className={`task ${t.status==='done'?'done':''}`}>
+                    <div className={`task-cb ${t.status}`}>{t.status==='done'?'✓':''}</div>
+                    {t.name}
+                    <span className="task-time">{t.time}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <div className="card-title">Komunikasi</div>
+              <div style={{display:'flex',gap:8}}>
+                <div className="btn primary" style={{flex:1,justifyContent:'center'}}>📞 Panggil</div>
+                <div className="btn" style={{flex:1,justifyContent:'center'}}>💬 Pesan</div>
+                <div className="btn" style={{flex:1,justifyContent:'center'}}>📡 Radio</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </AppShell>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>

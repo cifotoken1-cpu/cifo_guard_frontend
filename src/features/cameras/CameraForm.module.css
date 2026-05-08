@@ -1,0 +1,157 @@
+.form {
+  padding: 20px;
+  background: var(--bg-card);
+  border-radius: 9px;
+  border: 1px solid var(--border);
+}
+
+.form h3 {
+  margin: 0 0 16px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-hi);
+}
+
+.error {
+  padding: 10px 12px;
+  margin-bottom: 16px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 6px;
+  color: var(--red);
+  font-size: 12px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field.fullWidth {
+  grid-column: 1 / -1;
+}
+
+.field label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--text-lo);
+  letter-spacing: 0.5px;
+}
+
+.field input,
+.field select {
+  padding: 8px 10px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-hi);
+  font-size: 12px;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+
+.field input:focus,
+.field select:focus {
+  outline: none;
+  border-color: var(--cyan);
+  background: var(--bg);
+  box-shadow: 0 0 0 2px rgba(99, 179, 237, 0.1);
+}
+
+.field input:disabled,
+.field select:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.field small {
+  display: block;
+  margin-top: 4px;
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.fieldError {
+  font-size: 10px;
+  color: var(--red);
+  font-weight: 600;
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-bottom: 12px;
+}
+
+.btn {
+  padding: 8px 14px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.15s;
+  letter-spacing: 0.5px;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btnPrimary {
+  background: var(--cyan);
+  color: var(--bg);
+  border-color: var(--cyan);
+}
+
+.btnPrimary:hover:not(:disabled) {
+  background: var(--cyan-light);
+  border-color: var(--cyan-light);
+  transform: translateY(-1px);
+}
+
+.btnDanger {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--red);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.btnDanger:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: var(--red);
+}
+
+.btnSec {
+  background: transparent;
+  color: var(--text-mid);
+  border: 1px solid var(--border);
+}
+
+.btnSec:hover:not(:disabled) {
+  background: var(--bg-hover);
+  color: var(--text-hi);
+  border-color: var(--text-mid);
+}
+
+.note {
+  margin: 0;
+  padding: 12px;
+  background: rgba(59, 130, 246, 0.05);
+  border-left: 2px solid var(--blue);
+  border-radius: 4px;
+  font-size: 11px;
+  color: var(--text-mid);
+  line-height: 1.5;
+}

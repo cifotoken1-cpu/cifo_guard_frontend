@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 *)",
+      "Bash(Get-ChildItem -Path \"C:\\\\www\\\\cifo-frontend\" -Force)",
+      "Bash(Select-Object Name, FullName)",
+      "PowerShell(ls -Recurse -Depth 2 \"C:\\\\www\\\\cifo-frontend\" -ErrorAction SilentlyContinue | Where-Object { $_.PSIsContainer } | Select-Object -First 50 FullName)",
+      "mcp__ide__getDiagnostics",
+      "Bash(npm run *)"
+    ]
+  },
+  "hasCompletedOnboarding": true
+}

@@ -1,0 +1,112 @@
+.badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 5px;
+  background: rgba(239, 68, 68, 0.12);
+  color: var(--red);
+  letter-spacing: 0.06em;
+}
+
+.empty {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-lo);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.emptyIcon {
+  font-size: 32px;
+  margin-bottom: 10px;
+  opacity: 0.4;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 14px;
+  border-radius: 11px;
+  background: rgba(239, 68, 68, 0.06);
+  border: 1px solid rgba(239, 68, 68, 0.16);
+  transition: background 0.15s;
+  cursor: pointer;
+  animation: alertSlide 0.2s ease;
+}
+
+.item:hover { background: rgba(239, 68, 68, 0.1); }
+
+.itemIcon {
+  width: 38px;
+  height: 38px;
+  border-radius: 9px;
+  background: rgba(239, 68, 68, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--red);
+}
+
+.info { flex: 1; min-width: 0; }
+.name { font-size: 13px; font-weight: 600; color: var(--text-hi); }
+.loc {
+  font-size: 11px;
+  color: var(--text-lo);
+  margin-top: 2px;
+  font-family: var(--font-mono);
+}
+.desc {
+  font-size: 11px;
+  color: var(--text-mid);
+  margin-top: 4px;
+  line-height: 1.4;
+}
+
+.alertBadge {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 3px 10px;
+  border-radius: 5px;
+  background: rgba(239, 68, 68, 0.12);
+  color: var(--red);
+  flex-shrink: 0;
+}
+
+.btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 10px 14px;
+  border-radius: 9px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  border: 1px solid var(--border);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btnPrimary {
+  background: rgba(239, 68, 68, 0.12);
+  color: var(--red);
+  border-color: rgba(239, 68, 68, 0.2);
+}
+
+.btnPrimary:hover:not(:disabled) { background: rgba(239, 68, 68, 0.2); }
+
+.btnSec {
+  background: var(--bg-card);
+  color: var(--text-mid);
+}
+
+.btnSec:hover { background: var(--bg-hover); color: var(--text-hi); }

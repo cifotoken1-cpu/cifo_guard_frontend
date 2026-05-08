@@ -1,0 +1,244 @@
+.center {
+  display: flex;
+  flex-direction: column;
+  padding: 18px 16px;
+  gap: 14px;
+  overflow-y: auto;
+}
+
+/* ── Metrics ── */
+.metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+
+.metric {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  position: relative;
+  overflow: hidden;
+}
+.metric::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  border-radius: 11px 11px 0 0;
+}
+.mc_green::before { background: var(--green); }
+.mc_amber::before { background: var(--amber); }
+.mc_red::before { background: var(--red); }
+.mc_cyan::before { background: var(--cyan); }
+
+.metricNum {
+  font-family: var(--font-mono);
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1;
+}
+.c_green { color: var(--green); }
+.c_amber { color: var(--amber); }
+.c_red { color: var(--red); }
+.c_cyan { color: var(--cyan); }
+
+.metricLbl {
+  font-size: 10px;
+  color: var(--text-lo);
+  letter-spacing: 0.04em;
+}
+.metricSub { font-size: 9px; color: var(--text-lo); margin-top: 2px; }
+
+/* ── Arm row ── */
+.armRow { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+.armBtn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 16px 10px;
+  border-radius: 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-mid);
+  position: relative;
+  overflow: hidden;
+  user-select: none;
+}
+.armBtn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.04) 0%, transparent 60%);
+  pointer-events: none;
+}
+.armBtn:hover { background: var(--bg-hover); border-color: var(--border-hi); }
+
+.armActivate {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.28);
+  color: var(--red);
+}
+
+.armDisarm {
+  background: rgba(34, 197, 94, 0.08);
+  border-color: rgba(34, 197, 94, 0.22);
+  color: var(--green);
+}
+
+/* ── Mode row ── */
+.modeRow { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+
+.modeBtn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 10px 4px;
+  border-radius: 9px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text-mid);
+  transition: all 0.15s;
+  user-select: none;
+}
+.modeBtn:hover { background: var(--bg-hover); color: var(--text-hi); }
+
+.modeActive {
+  background: rgba(99, 179, 237, 0.1);
+  border-color: rgba(99, 179, 237, 0.25);
+  color: var(--cyan);
+}
+
+.panicActive {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: var(--red);
+}
+
+/* ── Sensor list ── */
+.sensorList { display: flex; flex-direction: column; gap: 2px; }
+.sensorEmpty {
+  padding: 18px;
+  text-align: center;
+  color: var(--text-lo);
+  font-size: 12px;
+}
+
+.sensorItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.sensorItem:hover { background: var(--bg-hover); }
+
+.sensorIcon { width: 14px; height: 14px; flex-shrink: 0; color: var(--text-lo); display: inline-flex; }
+.sensorInfo { flex: 1; min-width: 0; }
+.sensorName {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-hi);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sensorTime {
+  font-size: 10px;
+  color: var(--text-lo);
+  margin-top: 1px;
+  font-family: var(--font-mono);
+}
+
+.sensorStatus {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+.status_open { background: rgba(251, 191, 36, 0.1); color: var(--amber); }
+.status_clear { background: rgba(34, 197, 94, 0.08); color: var(--green); }
+.status_alert {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--red);
+  animation: blink 1.5s infinite;
+}
+.status_offline { background: rgba(148, 163, 184, 0.08); color: var(--text-lo); }
+
+/* ── Cameras Grid ── */
+.camerasGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+/* ── Activity Log ── */
+.logList {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.logItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: 7px;
+  border: 1px solid transparent;
+  transition: background 0.15s;
+}
+.logItem:hover { background: var(--bg-card); }
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 4px;
+}
+.dot_alert { background: var(--red); }
+.dot_door { background: var(--amber); }
+.dot_motion { background: var(--cyan); }
+.dot_system { background: var(--text-lo); }
+
+.logBody {
+  flex: 1;
+  min-width: 0;
+}
+
+.logMsg {
+  font-size: 12px;
+  color: var(--text-hi);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+}
+
+.logTime {
+  font-size: 10px;
+  color: var(--text-lo);
+  margin-top: 1px;
+  font-family: var(--font-mono);
+}

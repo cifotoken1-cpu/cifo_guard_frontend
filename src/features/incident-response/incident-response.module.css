@@ -1,0 +1,356 @@
+.view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 16px;
+  gap: 14px;
+  overflow: hidden;
+}
+
+/* ── Stats bar ───────────────────────────────────────────── */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.stat {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+
+.statIcon {
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.statNum {
+  font-family: var(--font-mono);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.statLbl {
+  font-size: 10px;
+  color: var(--text-lo);
+  margin-top: 2px;
+  letter-spacing: 0.04em;
+}
+
+/* ── Main grid ───────────────────────────────────────────── */
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 420px;
+  gap: 16px;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* ── Kanban ──────────────────────────────────────────────── */
+.kanbanWrap {
+  overflow-y: auto;
+}
+
+.kanban {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  align-items: start;
+}
+
+.col {
+  background: var(--bg-deep);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px;
+  min-height: 300px;
+}
+
+.colHd {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 6px 10px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 10px;
+}
+
+.colTitle {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.colDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.colCount {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-lo);
+  background: var(--bg-card);
+  padding: 2px 7px;
+  border-radius: 10px;
+}
+
+/* ── Incident card ───────────────────────────────────────── */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+  border-left: 3px solid var(--text-lo);
+}
+
+.card:hover {
+  background: var(--bg-hover);
+  transform: translateX(2px);
+}
+
+.card.selected {
+  background: rgba(99, 179, 237, 0.06);
+  border-color: rgba(99, 179, 237, 0.28);
+  border-left-color: var(--cyan);
+}
+
+.card.priHigh { border-left-color: var(--red); }
+.card.priCritical {
+  border-left-color: var(--red);
+  box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.2);
+}
+.card.priMedium { border-left-color: var(--amber); }
+.card.priLow { border-left-color: var(--cyan); }
+
+.cardId {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--text-lo);
+  letter-spacing: 0.05em;
+}
+
+.cardTitle {
+  font-size: 13px;
+  font-weight: 600;
+  margin-top: 4px;
+  line-height: 1.3;
+}
+
+.cardMeta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  font-size: 10px;
+  color: var(--text-lo);
+}
+
+/* ── Detail pane ─────────────────────────────────────────── */
+.detailPane {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.detailTop {
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.detailId {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-lo);
+  letter-spacing: 0.05em;
+}
+
+.detailTitle {
+  font-size: 17px;
+  font-weight: 700;
+  margin-top: 5px;
+  line-height: 1.3;
+}
+
+.detailMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.detailBody {
+  flex: 1;
+  overflow-y: auto;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.detailGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.field {
+  padding: 10px 12px;
+  background: var(--bg-deep);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.fieldLbl {
+  font-size: 9px;
+  color: var(--text-lo);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.fieldVal {
+  font-size: 13px;
+  font-weight: 500;
+  margin-top: 3px;
+  color: var(--text-hi);
+}
+
+/* ── Timeline ────────────────────────────────────────────── */
+.timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  position: relative;
+  padding-left: 18px;
+}
+
+.timeline::before {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 5px;
+  bottom: 5px;
+  width: 1px;
+  background: var(--border);
+}
+
+.tlItem {
+  padding: 8px 0 14px;
+  position: relative;
+}
+
+.tlDot {
+  position: absolute;
+  left: -18px;
+  top: 11px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  border: 2px solid var(--bg-card);
+}
+
+.tlDotGreen { background: var(--green); }
+.tlDotAmber { background: var(--amber); }
+.tlDotRed { background: var(--red); }
+.tlDotCyan { background: var(--cyan); }
+.tlDotGray { background: var(--text-lo); }
+
+.tlTime {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-lo);
+}
+
+.tlMsg {
+  font-size: 12px;
+  margin-top: 2px;
+  color: var(--text-hi);
+  line-height: 1.4;
+}
+
+.tlBy {
+  font-size: 10px;
+  color: var(--text-mid);
+  margin-top: 2px;
+}
+
+/* ── Actions ─────────────────────────────────────────────── */
+.detailActions {
+  padding: 14px 20px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.resolveBtn {
+  flex: 1;
+  padding: 10px 16px;
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  border-radius: 8px;
+  color: var(--green);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: var(--font-ui);
+}
+
+.resolveBtn:hover { background: rgba(34, 197, 94, 0.2); }
+.resolveBtn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ── Shared badges ───────────────────────────────────────── */
+.badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 5px;
+  letter-spacing: 0.06em;
+}
+
+.badgeRed { background: rgba(239, 68, 68, 0.15); color: var(--red); }
+.badgeAmber { background: rgba(251, 191, 36, 0.15); color: var(--amber); }
+.badgeCyan { background: rgba(99, 179, 237, 0.15); color: var(--cyan); }
+.badgeGray { background: var(--bg-deep); color: var(--text-mid); }
+.badgeGreen { background: rgba(34, 197, 94, 0.15); color: var(--green); }
+
+.empty {
+  padding: 2rem;
+  text-align: center;
+  color: var(--text-lo);
+  font-size: 13px;
+}
+
+.sectionTitle {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--text-lo);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}

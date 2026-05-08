@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>Incident Response — Nexus Guard</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>
+.ir-grid{display:grid;grid-template-columns:1fr 420px;gap:16px;height:100%}
+.ir-stats{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px}
+.ir-stat{background:var(--bg-card);border:1px solid var(--border);border-radius:11px;padding:12px;display:flex;align-items:center;gap:11px}
+.ir-stat-icon{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ir-stat-icon svg{width:16px;height:16px}
+.ir-stat-num{font-family:var(--font-mono);font-size:18px;font-weight:700;line-height:1}
+.ir-stat-lbl{font-size:10px;color:var(--text-lo);margin-top:2px;letter-spacing:0.04em}
+
+.kanban{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;align-items:start}
+.col{background:var(--bg-deep);border:1px solid var(--border);border-radius:12px;padding:10px;min-height:300px}
+.col-hd{display:flex;align-items:center;justify-content:space-between;padding:0 6px 10px;border-bottom:1px solid var(--border);margin-bottom:10px}
+.col-title{font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;display:flex;align-items:center;gap:7px}
+.col-count{font-family:var(--font-mono);font-size:10px;color:var(--text-lo);background:var(--bg-card);padding:2px 7px;border-radius:10px}
+
+.inc{background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px;cursor:pointer;transition:all 0.15s;border-left:3px solid var(--text-lo)}
+.inc:hover{background:var(--bg-hover);transform:translateX(2px)}
+.inc.selected{background:rgba(99,179,237,0.06);border-color:rgba(99,179,237,0.28);border-left-color:var(--cyan)}
+.inc.high{border-left-color:var(--red)}.inc.med{border-left-color:var(--amber)}.inc.low{border-left-color:var(--cyan)}.inc.crit{border-left-color:var(--red);box-shadow:0 0 0 1px rgba(239,68,68,0.2)}
+.inc-id{font-family:var(--font-mono);font-size:9px;color:var(--text-lo);letter-spacing:0.05em}
+.inc-title{font-size:13px;font-weight:600;margin-top:4px;line-height:1.3;text-wrap:pretty}
+.inc-meta{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:10px;color:var(--text-lo)}
+.inc-loc{display:flex;align-items:center;gap:4px}
+
+.detail-pane{background:var(--bg-card);border:1px solid var(--border);border-radius:14px;display:flex;flex-direction:column;overflow:hidden;height:100%}
+.detail-top{padding:18px 20px;border-bottom:1px solid var(--border)}
+.detail-id{font-family:var(--font-mono);font-size:11px;color:var(--text-lo);letter-spacing:0.05em}
+.detail-title{font-size:17px;font-weight:700;margin-top:5px;line-height:1.3}
+.detail-meta-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.detail-content{flex:1;overflow-y:auto;padding:18px 20px;display:flex;flex-direction:column;gap:18px}
+.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+.field{padding:10px 12px;background:var(--bg-deep);border-radius:8px;border:1px solid var(--border)}
+.field-lbl{font-size:9px;color:var(--text-lo);letter-spacing:0.08em;text-transform:uppercase}
+.field-val{font-size:13px;font-weight:500;margin-top:3px}
+
+.timeline{display:flex;flex-direction:column;gap:0;position:relative;padding-left:18px}
+.timeline::before{content:'';position:absolute;left:5px;top:5px;bottom:5px;width:1px;background:var(--border)}
+.tl-item{padding:8px 0 14px;position:relative}
+.tl-dot{position:absolute;left:-18px;top:11px;width:11px;height:11px;border-radius:50%;border:2px solid var(--bg-card)}
+.tl-dot.green{background:var(--green)}.tl-dot.amber{background:var(--amber)}.tl-dot.red{background:var(--red)}.tl-dot.cyan{background:var(--cyan)}.tl-dot.gray{background:var(--text-lo)}
+.tl-time{font-family:var(--font-mono);font-size:10px;color:var(--text-lo)}
+.tl-msg{font-size:12px;margin-top:2px;color:var(--text-hi);text-wrap:pretty}
+.tl-by{font-size:10px;color:var(--text-mid);margin-top:2px}
+
+.detail-actions{padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:8px}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" src="app-shell.jsx"></script>
+<script type="text/babel">
+const { useState } = React;
+
+const Ic = {
+  alert: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>,
+  fire: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>,
+  car: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 16H9m10 0h3v-3.15a1 1 0 0 0-.84-.99L16 11l-2.7-3.6a1 1 0 0 0-.8-.4H5.24a2 2 0 0 0-1.8 1.1l-.8 1.63A6 6 0 0 0 2 12.42V16h2"/><circle cx="6.5" cy="16.5" r="2.5"/><circle cx="16.5" cy="16.5" r="2.5"/></svg>,
+  ok: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
+  clock: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
+  pin: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>,
+};
+
+const INCIDENTS = [
+  {id:'INC-2026-0142',title:'Pencurian motor di area parkir Blok C',category:'Theft',priority:'high',status:'in-progress',location:'Parkir Blok C',reporter:'Pak Hartono (C-12)',assignee:'Budi Santoso',createdAt:'08:42:15',updatedAt:'5 menit lalu'},
+  {id:'INC-2026-0141',title:'Asap mencurigakan dari rumah kosong B-08',category:'Fire/Smoke',priority:'critical',status:'in-progress',location:'Blok B - Rumah B08',reporter:'Patroli Rian',assignee:'Joko Widodo',createdAt:'08:15:00',updatedAt:'12 menit lalu'},
+  {id:'INC-2026-0140',title:'Orang asing mencurigakan di taman',category:'Suspicious',priority:'medium',status:'investigating',location:'Taman Komunitas',reporter:'CCTV Op. Ahmad',assignee:'Yusuf Maulana',createdAt:'07:30:22',updatedAt:'30 menit lalu'},
+  {id:'INC-2026-0139',title:'Tabrakan ringan di gerbang utama',category:'Vehicle',priority:'low',status:'investigating',location:'Gerbang Utama',reporter:'Pos Security',assignee:'Hendra Kusuma',createdAt:'06:55:10',updatedAt:'1 jam lalu'},
+  {id:'INC-2026-0138',title:'Lampu jalan padam di Blok D-3',category:'Maintenance',priority:'low',status:'reported',location:'Blok D - Jalan 3',reporter:'Warga D-15',assignee:null,createdAt:'06:20:00',updatedAt:'2 jam lalu'},
+  {id:'INC-2026-0137',title:'Klaim kunci hilang dari unit A-22',category:'Other',priority:'low',status:'reported',location:'Blok A - Rumah A22',reporter:'Bu Sari',assignee:null,createdAt:'06:00:30',updatedAt:'2 jam lalu'},
+  {id:'INC-2026-0136',title:'Kebocoran air di area common',category:'Maintenance',priority:'medium',status:'resolved',location:'Common Area Blok B',reporter:'Patroli Siti',assignee:'Maintenance Team',createdAt:'Kemarin 22:15',updatedAt:'Kemarin'},
+  {id:'INC-2026-0135',title:'Anak tersesat di taman bermain',category:'Other',priority:'medium',status:'resolved',location:'Taman Bermain',reporter:'Bu Lina',assignee:'Dewi Kartika',createdAt:'Kemarin 19:30',updatedAt:'Kemarin'},
+  {id:'INC-2026-0134',title:'Hewan peliharaan lepas',category:'Other',priority:'low',status:'resolved',location:'Blok A',reporter:'Pak Rudi',assignee:'Lina Marlina',createdAt:'Kemarin 14:00',updatedAt:'Kemarin'},
+];
+
+const TIMELINE = {
+  'INC-2026-0142':[
+    {time:'08:42:15',msg:'Insiden dilaporkan via aplikasi warga oleh Pak Hartono',by:'System',type:'red'},
+    {time:'08:43:00',msg:'Tiket otomatis dibuat dan diberi prioritas TINGGI',by:'AI Triage',type:'amber'},
+    {time:'08:44:30',msg:'Ditugaskan ke Budi Santoso (Senior Guard, lokasi terdekat)',by:'Dispatch',type:'cyan'},
+    {time:'08:46:12',msg:'Tim tiba di lokasi parkir Blok C',by:'Budi Santoso',type:'cyan'},
+    {time:'08:48:55',msg:'CCTV review menunjukkan 2 orang tidak dikenal masuk pukul 03:14',by:'Ahmad Fauzi',type:'amber'},
+    {time:'08:55:00',msg:'Mengamankan TKP. Foto bukti diunggah (4 file)',by:'Budi Santoso',type:'cyan'},
+    {time:'09:02:30',msg:'Wawancara saksi - 3 warga sekitar memberi keterangan',by:'Budi Santoso',type:'cyan'},
+    {time:'09:15:00',msg:'Laporan diteruskan ke Polsek setempat',by:'Maya R.',type:'amber'},
+  ],
+};
+
+function getTL(id){return TIMELINE[id] || [
+  {time:'08:42',msg:'Insiden dilaporkan',by:'System',type:'red'},
+  {time:'08:43',msg:'Tiket dibuat & ditugaskan',by:'Dispatch',type:'amber'},
+  {time:'08:50',msg:'Tim tiba di lokasi',by:'Patroli',type:'cyan'},
+];}
+
+function App(){
+  const [selected, setSelected] = useState(INCIDENTS[0]);
+
+  const cols = [
+    {id:'reported',title:'Dilaporkan',color:'gray',items:INCIDENTS.filter(i=>i.status==='reported')},
+    {id:'investigating',title:'Investigasi',color:'amber',items:INCIDENTS.filter(i=>i.status==='investigating')},
+    {id:'in-progress',title:'Dikerjakan',color:'cyan',items:INCIDENTS.filter(i=>i.status==='in-progress')},
+    {id:'resolved',title:'Selesai',color:'green',items:INCIDENTS.filter(i=>i.status==='resolved')},
+  ];
+
+  const stats = [
+    {label:'Insiden Hari Ini',num:INCIDENTS.filter(i=>!i.createdAt.startsWith('Kemarin')).length,color:'red',bg:'rgba(239,68,68,0.12)',icon:Ic.alert},
+    {label:'Kritis Aktif',num:INCIDENTS.filter(i=>i.priority==='critical' && i.status!=='resolved').length,color:'red',bg:'rgba(239,68,68,0.1)',icon:Ic.fire},
+    {label:'Dalam Proses',num:INCIDENTS.filter(i=>i.status==='in-progress'||i.status==='investigating').length,color:'amber',bg:'rgba(251,191,36,0.1)',icon:Ic.clock},
+    {label:'Selesai (24j)',num:INCIDENTS.filter(i=>i.status==='resolved').length,color:'green',bg:'rgba(34,197,94,0.1)',icon:Ic.ok},
+    {label:'Avg. Resolution',num:'24m',color:'cyan',bg:'rgba(99,179,237,0.1)',icon:Ic.clock},
+  ];
+
+  const priClass = {high:'high',critical:'crit',medium:'med',low:'low'};
+  const priLabel = {high:'TINGGI',critical:'KRITIS',medium:'SEDANG',low:'RENDAH'};
+  const priBadge = {high:'amber',critical:'red',medium:'cyan',low:'gray'};
+
+  return (
+    <AppShell active="incident" title="Respons Insiden" subtitle="Pencatatan, tracking, dan penyelesaian insiden keamanan"
+      headerRight={<><div className="btn"><span style={{width:13,height:13}}>{NavIcons.search}</span> Cari</div><div className="btn primary">+ Insiden Baru</div></>}>
+
+      <div className="ir-stats">
+        {stats.map((s,i)=>(
+          <div key={i} className="ir-stat">
+            <div className="ir-stat-icon" style={{background:s.bg,color:`var(--${s.color})`}}>{s.icon}</div>
+            <div>
+              <div className="ir-stat-num" style={{color:`var(--${s.color})`}}>{s.num}</div>
+              <div className="ir-stat-lbl">{s.label}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="ir-grid">
+        <div className="kanban">
+          {cols.map(c=>(
+            <div key={c.id} className="col">
+              <div className="col-hd">
+                <div className="col-title"><span className={`dot ${c.color}`}></span>{c.title}</div>
+                <div className="col-count">{c.items.length}</div>
+              </div>
+              {c.items.map(inc=>(
+                <div key={inc.id}
+                  className={`inc ${priClass[inc.priority]} ${selected.id===inc.id?'selected':''}`}
+                  onClick={()=>setSelected(inc)}>
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                    <span className="inc-id">{inc.id}</span>
+                    <span className={`badge ${priBadge[inc.priority]}`}>{priLabel[inc.priority]}</span>
+                  </div>
+                  <div className="inc-title">{inc.title}</div>
+                  <div className="inc-meta">
+                    <span className="inc-loc">📍 {inc.location}</span>
+                    <span>· {inc.updatedAt}</span>
+                  </div>
+                </div>
+              ))}
+              {c.items.length===0 && <div style={{textAlign:'center',padding:30,fontSize:11,color:'var(--text-lo)'}}>Tidak ada insiden</div>}
+            </div>
+          ))}
+        </div>
+
+        <div className="detail-pane">
+          <div className="detail-top">
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+              <div className="detail-id">{selected.id}</div>
+              <span className={`badge ${priBadge[selected.priority]}`}>Prioritas {priLabel[selected.priority]}</span>
+            </div>
+            <div className="detail-title">{selected.title}</div>
+            <div className="detail-meta-row">
+              <span className="badge cyan">{selected.category}</span>
+              <span className="badge gray">{selected.status==='reported'?'Dilaporkan':selected.status==='investigating'?'Investigasi':selected.status==='in-progress'?'Dikerjakan':'Selesai'}</span>
+            </div>
+          </div>
+
+          <div className="detail-content">
+            <div>
+              <div className="card-title">Detail Insiden</div>
+              <div className="detail-grid">
+                <div className="field"><div className="field-lbl">Lokasi</div><div className="field-val">{selected.location}</div></div>
+                <div className="field"><div className="field-lbl">Pelapor</div><div className="field-val">{selected.reporter}</div></div>
+                <div className="field"><div className="field-lbl">Petugas</div><div className="field-val">{selected.assignee || '— Belum ditugaskan'}</div></div>
+                <div className="field"><div className="field-lbl">Dibuat</div><div className="field-val" style={{fontFamily:'var(--font-mono)',fontSize:12}}>{selected.createdAt}</div></div>
+              </div>
+            </div>
+
+            <div>
+              <div className="card-title">Timeline Investigasi</div>
+              <div className="timeline">
+                {getTL(selected.id).map((t,i)=>(
+                  <div key={i} className="tl-item">
+                    <div className={`tl-dot ${t.type}`}></div>
+                    <div className="tl-time">{t.time}</div>
+                    <div className="tl-msg">{t.msg}</div>
+                    <div className="tl-by">— {t.by}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <div className="card-title">Catatan & Update</div>
+              <textarea className="textarea" placeholder="Tambahkan update terbaru pada insiden ini..."></textarea>
+            </div>
+          </div>
+
+          <div className="detail-actions">
+            <div className="btn success" style={{flex:1,justifyContent:'center'}}>
+              <span style={{width:13,height:13}}>{Ic.ok}</span> Tandai Selesai
+            </div>
+            <div className="btn" style={{flex:1,justifyContent:'center'}}>📤 Eskalasi</div>
+            <div className="btn">⋯</div>
+          </div>
+        </div>
+      </div>
+    </AppShell>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
