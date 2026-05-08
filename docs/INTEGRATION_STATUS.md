@@ -66,11 +66,12 @@ grep -rn "@stub: hybrid" src/ | wc -l
 | Kategori | Jumlah Entry | Marker `@stub:` di kode |
 |---|---|---|
 | 🟢 Real | (di luar scope dokumen ini — lihat `docs/features/*.md`) | — |
+| 🟢 **Resolved** (sebelumnya legacy/blocked) | **1** (#1 cameras: DB-backed sejak 2026-05-08) | — |
 | 🟡 Hybrid | 2 | ✅ 2 marker |
 | 🟠 Backend-Blocked | 5 | ✅ 4 marker |
-| 🔴 Legacy | 1 | ✅ 1 marker |
+| 🔴 Legacy | 0 | — |
 | ⚪ TBD | 2 | — |
-| **Total entry yang membutuhkan perhatian** | **10** | **7 ditandai** |
+| **Total entry yang membutuhkan perhatian** | **9** | **6 ditandai** |
 
 **GitHub backlog:** issue #2, #3, #4, #5 (epic) + #6–#13 (action items). Lihat label `tracking`, `integration:*`.
 
@@ -82,7 +83,7 @@ grep -rn "@stub: hybrid" src/ | wc -l
 
 | # | Area | File / Lokasi | Kategori | Penjelasan | Aksi yang Diperlukan | Blocker / Dependency | Owner | Status |
 |---|---|---|---|---|---|---|---|---|
-| 1 | **18 kamera hardcoded + injeksi Vigi AI** | `src/api/cameras.api.js` (`list()`) | 🔴 LEGACY | Endpoint `/api/cameras` legacy return 18 kamera hardcoded di backend memory + injeksi data Vigi AI. Bukan dari database real. | Migrasi `useCameras()` ke `camerasApi.db.list()` setelah backend bug `/api/api/cameras` selesai. Hapus konstanta hardcoded. | Issue [#9](https://github.com/cifotoken1-cpu/cifo_guard_frontend/issues/9) (backend double-prefix bug) | Frontend dev | Marker ✅ + issue [#10](https://github.com/cifotoken1-cpu/cifo_guard_frontend/issues/10) |
+| 1 | ~~**18 kamera hardcoded + injeksi Vigi AI**~~ → **DB-backed via Camera.getAll()** | `backend/api/router.js` (legacy `GET /cameras`); `src/api/cameras.api.js` (`list()`) | 🟢 RESOLVED (2026-05-08) | Konstanta `CCTV_CAMERAS` (164 baris, 18 kamera hardcoded) dihapus dari backend. Legacy endpoint `/api/cameras` sekarang query `Camera.getAll()` dari DB. Heartbeat POST validation ganti pakai `Camera.getById()`. Frontend tidak perlu di-update karena URL & response shape preserved. | — | — | — | ✅ Resolved — closes #10 |
 | 2 | **Arm/Disarm system** | `src/store/system.store.js` (`armed`, `setArmed`) | 🟠 BACKEND-BLOCKED | State `armed` hanya local + persisted ke `localStorage`. Tidak ada koordinasi server-side; guard A "arm" tidak terlihat oleh guard B. | Backend implement `POST /api/system/arm`, `POST /api/system/disarm`, `GET /api/system/status`, WS `system_status_changed`. Frontend swap dari local state ke API call. | Backend team | Backend dev → Frontend dev | Marker ✅ + issue [#6](https://github.com/cifotoken1-cpu/cifo_guard_frontend/issues/6) |
 | 3 | **Mode selector (Home / Night / Silent)** | `src/store/system.store.js` (`mode`, `setMode`); UI di `src/features/dashboard/CenterPanel.jsx`, `src/features/panic/PanicConfirmModal.jsx` | 🟠 BACKEND-BLOCKED | Mode tidak tersinkronisasi antar device. Saat ini hanya local state. Workaround: `feature_flags` table dengan key `system.mode`. | Backend implement `POST/GET /api/system/mode` (atau via `feature_flags`), WS `system_mode_changed`. Frontend swap. | Backend team | Backend dev → Frontend dev | Marker ✅ + issue [#7](https://github.com/cifotoken1-cpu/cifo_guard_frontend/issues/7) |
 | 4 | **Sensor list** (door / motion / glass) | `src/features/dashboard/CenterPanel.jsx` (derive dari `useRecentActivities`) | 🟠 BACKEND-BLOCKED | Sensor list diderivasi dari `GET /api/activities/recent` dengan filter type berdasarkan deskripsi. Race condition saat WS event masuk; filter berbasis text matching, fragile. | Backend implement `GET /api/sensors` dengan field `id`, `type`, `status`, `location`, `last_event_at` + WS `sensor_status_changed`. Frontend tambah hook `useSensors()`. | Backend team | Backend dev → Frontend dev | Marker ✅ + issue [#8](https://github.com/cifotoken1-cpu/cifo_guard_frontend/issues/8) |

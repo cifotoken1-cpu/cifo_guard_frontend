@@ -11,11 +11,14 @@ import { api } from './client';
  */
 export const camerasApi = {
   // ──── LEGACY SYSTEM (in-memory) ────
-  // @stub: legacy — endpoint /api/cameras return 18 kamera hardcoded di backend memory (lihat #9, #10, INTEGRATION_STATUS.md #1)
+  // RESOLVED (2026-05-08): Endpoint /api/cameras sekarang DB-backed via Camera.getAll().
+  // Konstanta CCTV_CAMERAS hardcoded sudah dihapus dari backend/api/router.js (commit X).
+  // Vigi AI (C240-01) injection masih dilakukan di sini untuk backward compat —
+  // bisa dihapus kalau backend dijamin selalu return Vigi camera. Lihat INTEGRATION_STATUS.md #1, #8.
   /**
-   * GET /api/cameras — 18 hardcoded cameras.
-   * Also injects Vigi AI (C240-01) from DB if registered.
-   * normalizeCameraList will move it to index 0 (Vigi-First ordering).
+   * GET /api/cameras — list kamera dari database (sebelumnya 18 hardcoded).
+   * Tetap inject Vigi AI (C240-01) dari endpoint terpisah jika ada di DB.
+   * normalizeCameraList akan memindah Vigi ke index 0 (Vigi-First ordering).
    */
   list: async () => {
     const data = await api.get('/cameras').then((r) => r.data);

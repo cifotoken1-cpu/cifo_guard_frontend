@@ -10,6 +10,7 @@ const { alertQueue } = require('./queue.js');
 // Import Controllers
 const AlertController = require('../controllers/AlertController');
 const CameraController = require('../controllers/CameraController');
+const Camera = require('../models/Camera');
 const TeamController = require('../controllers/TeamController');
 const ActivityController = require('../controllers/ActivityController');
 const PerumahanController = require('../controllers/PerumahanController');
@@ -434,183 +435,25 @@ router.get('/metrics', (req, res) => {
 // Camera heartbeat storage (in-memory for demo)
 const cameraHeartbeats = new Map();
 
-// CCTV camera data (imported from frontend config)
-const CCTV_CAMERAS = [
-  {
-    id: "cam-1",
-    label: "CCTV Aceh - Wastukencana", area: "Bandung",
-    lat: -6.9103254,
-    lng: 107.6089499,
-    streamUrl: "/video/HIKSVISION/acehwastukencana.m3u8",
-    status: "online",
-    snapshot: "https://via.placeholder.com/160x90.png?text=CCTV+Aceh+Wastukencana"
-  },
-  {
-    id: "cam-2",
-    label: "CCTV Alun Alun 01 Banceuy", area: "Bandung",
-    lat: -6.920917,
-    lng: 107.606446,
-    streamUrl: "/video/DAHUA/DepanTo.m3u8",
-    status: "online",
-    snapshot: "https://via.placeholder.com/160x90.png?text=CCTV+Alun+Alun+Banceuy"
-  },
-  {
-    id: "cam-3",
-    label: "CCTV Alun Alun 02 Asia Afrika", area: "Bandung",
-    lat: -6.920949,
-    lng: 107.606511,
-    streamUrl: "/video/DAHUA/DepanTop.m3u8",
-    status: "online",
-    snapshot: "https://via.placeholder.com/160x90.png?text=CCTV+Alun+Alun+Asia+Afrika"
-  },
-  {
-    id: "cam-4",
-    label: "CCTV Alun-Alun 03", area: "Bandung",
-    lat: -6.9231843,
-    lng: 107.6074217,
-    streamUrl: "/video/DAHUA/ALUN.m3u8",
-    status: "online",
-    snapshot: "https://via.placeholder.com/160x90.png?text=CCTV+Alun-Alun+03"
-  },
-  {
-    id: "cam-5",
-    label: "CCTV Antapani Depan Borma 01", area: "Bandung",
-    lat: -6.912725,
-    lng: 107.649657,
-    streamUrl: "/video/HIKSVISION/Ant.m3u8",
-    status: "online",
-    snapshot: "https://via.placeholder.com/160x90.png?text=CCTV+Antapani+Depan+Borma+01"
-  },
-  {
-    id: "cam-6",
-    label: "CCTV Antapani Depan Borma 02", area: "Bandung",
-    lat: -6.912767,
-    lng: 107.649681,
-    streamUrl: "/video/HIKSVISION/Antt.m3u8",
-    status: "online",
-    snapshot: "https://via.placeholder.com/160x90.png?text=CCTV+Antapani+Depan+Borma+02"
-  },
-  {
-    id: "cam-7",
-    label: "CCTV Batas Kota 01", area: "Bandung",
-    lat: -6.910413,
-    lng: 107.569164,
-    streamUrl: "/video/DAHUA/BatasKo.m3u8",
-    status: "online",
-    snapshot: "https://via.placeholder.com/160x90.png?text=CCTV+Batas+Kota+01"
-  },
-  {
-    id: "cam-8",
-    label: "CCTV Borma Cikutra 01", area: "Bandung",
-    lat: -6.892129,
-    lng: 107.630791,
-    streamUrl: "/video/HIKSVISION/CIK.m3u8",
-    status: "online",
-    snapshot: "https://via.placeholder.com/160x90.png?text=CCTV+Borma+Cikutra+01"
-  },
-  {
-    id: "cam-9",
-    label: "CCTV Borma Cikutra 02", area: "Bandung",
-    lat: -6.892169,
-    lng: 107.630823,
-    streamUrl: "/video/HIKSVISION/CIKUT.m3u8",
-    status: "online",
-    snapshot: "https://via.placeholder.com/160x90.png?text=CCTV+Borma+Cikutra+02"
-  },
-  {
-    id: "cam-10",
-    label: "CCTV Braga 01", area: "Bandung",
-    lat: -6.916752,
-    lng: 107.609219,
-    streamUrl: "/video/HIKSVISION/braga.m3u8",
-    status: "online",
-    snapshot: "https://via.placeholder.com/160x90.png?text=CCTV+Braga+01"
-  },
-  {
-    id: "cam-11",
-    label: "CCTV Braga 01", area: "Bandung",
-    lat: -6.916752,
-    lng: 107.609219,
-    streamUrl: "/video/HIKSVISION/braga.m3u8",
-    status: "online",
-    snapshot: "https://via.placeholder.com/160x90.png?text=CCTV+Braga+01"
-  },
-  {
-    id: "cam-12",
-    label: "CCTV Braga 03", area: "Bandung",
-    lat: -6.916454,
-    lng: 107.608967,
-    streamUrl: "/video/HIKSVISION/bragaaa.m3u8",
-    status: "online",
-    snapshot: "https://via.placeholder.com/160x90.png?text=CCTV+Braga+03"
-  },
-  {
-    id: "cam-13",
-    label: "CCTV Braga 1 - Naripan 01", area: "Bandung",
-    lat: -6.919789,
-    lng: 107.609987,
-    streamUrl: "/video/HIKSVISION/Nar.m3u8",
-    status: "online",
-    snapshot: "https://via.placeholder.com/160x90.png?text=CCTV+Braga+1+Naripan+01"
-  },
-  {
-    id: "cam-14",
-    label: "CCTV Braga 1 - Naripan 02", area: "Bandung",
-    lat: -6.9197067,
-    lng: 107.6097811,
-    streamUrl: "/video/HIKSVISION/Nari.m3u8",
-    status: "online",
-    snapshot: "https://via.placeholder.com/160x90.png?text=CCTV+Braga+1+Naripan+02"
-  },
-  {
-    id: "cam-15",
-    label: "CCTV Buah Batu Depan Griya 02", area: "Bandung",
-    lat: -6.9405169,
-    lng: 107.6261184,
-    streamUrl: "/video/HIKSVISION/Buahgriya.m3u8",
-    status: "online",
-    snapshot: "https://via.placeholder.com/160x90.png?text=CCTV+Buah+Batu+Depan+Griya+02"
-  },
-  {
-    id: "cam-16",
-    label: "CCTV Buah Batu Kordon 01", area: "Bandung",
-    lat: -6.954781,
-    lng: 107.639315,
-    streamUrl: "/video/DAHUA/BUB.m3u8",
-    status: "online",
-    snapshot: "https://via.placeholder.com/160x90.png?text=CCTV+Buah+Batu+Kordon+01"
-  },
-  {
-    id: "cam-17",
-    label: "CCTV Burangrang BPI 01", area: "Bandung",
-    lat: -6.9236587,
-    lng: 107.6184553,
-    streamUrl: "/video/HIKSVISION/burangrangbpi.m3u8",
-    status: "online",
-    snapshot: "https://via.placeholder.com/160x90.png?text=CCTV+Burangrang+BPI+01"
-  },
-  {
-    id: "cam-18",
-    label: "CCTV ATCS Samsat", area: "Bandung",
-    lat: -6.9175,
-    lng: 107.6191,
-    streamUrl: "/atcs/Samsat/index.m3u8",
-    status: "online",
-    snapshot: "https://via.placeholder.com/160x90.png?text=ATCS+Samsat"
-  }
-];
+// NOTE: Konstanta CCTV_CAMERAS hardcoded (18 kamera) dihapus pada migrasi DB-backed.
+// Sumber kamera sekarang dari Camera.getAll() di model. Lihat #10 di GitHub +
+// docs/INTEGRATION_STATUS.md row #1.
+
 
 /**
  * GET /cameras - Get all cameras with current status
  * Returns list of all CCTV cameras with their current health status
  */
-router.get('/cameras', trackLatency, (req, res) => {
+router.get('/cameras', trackLatency, async (req, res) => {
   try {
     const now = Date.now();
     const HEARTBEAT_TIMEOUT = 60000; // 1 minute timeout
-    
+
+    // Source kamera dari DB (sebelumnya dari konstanta CCTV_CAMERAS hardcoded).
+    const dbCameras = await Camera.getAll();
+
     // Enrich camera data with heartbeat status
-    const camerasWithStatus = CCTV_CAMERAS.map(camera => {
+    const camerasWithStatus = dbCameras.map(camera => {
       const heartbeat = cameraHeartbeats.get(camera.id);
       
       let currentStatus = 'offline';
@@ -680,7 +523,7 @@ router.get('/cameras', trackLatency, (req, res) => {
  * POST /cameras/:id/heartbeat - Update camera heartbeat status
  * Receives heartbeat data from camera health monitoring
  */
-router.post('/cameras/:id/heartbeat', trackLatency, (req, res) => {
+router.post('/cameras/:id/heartbeat', trackLatency, async (req, res) => {
   try {
     const cameraId = req.params.id;
     const {
@@ -691,9 +534,9 @@ router.post('/cameras/:id/heartbeat', trackLatency, (req, res) => {
       streamAccessible,
       lastCheck
     } = req.body;
-    
-    // Validate camera ID
-    const camera = CCTV_CAMERAS.find(c => c.id === cameraId);
+
+    // Validate camera ID via DB lookup (sebelumnya pakai CCTV_CAMERAS.find).
+    const camera = await Camera.getById(cameraId);
     if (!camera) {
       metrics.requests.total++;
       metrics.requests.failed++;
