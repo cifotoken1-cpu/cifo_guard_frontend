@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(xargs grep *)",
+      "Bash(node scripts/migrate.js)",
+      "Bash(node -e \"const mysql = require\\('mysql2/promise'\\); mysql.createConnection\\({host:'localhost', user:'root', password:'', database:'cifo_security'}\\).then\\(c => {c.execute\\('SELECT 1'\\).then\\(\\(\\) => console.log\\('✅ DB Connected'\\)\\).finally\\(\\(\\) => c.end\\(\\)\\)}\\).catch\\(e => console.log\\('❌ Error:', e.message\\)\\)\")",
+      "Bash(node -e ' *)",
+      "Bash(npm start *)",
+      "Bash(curl -s -X POST http://localhost:3001/api/auth/login -H 'Content-Type: application/json' -d '{\"username\":\"admin\",\"password\":\"admin123\"}')",
+      "Bash(curl -X POST http://localhost:3001/api/auth/login -H 'Content-Type: application/json' -d '{\"username\":\"admin\",\"password\":\"admin123\"}')",
+      "Bash(curl -s -X GET http://localhost:3001/api/auth/me -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImFkbWluXzAwMSIsInVzZXJJZCI6ImFkbWluXzAwMSIsInJvbGUiOiJTVVBFUl9BRE1JTiIsImlhdCI6MTc3Nzk4MDYwNSwiZXhwIjoxNzc4MDY3MDA1fQ.NNFOyaKL9o_SdFXQrWQ2qbu2Oj9f-8TSkHrxgSgB8Vg')",
+      "Bash(curl -s -X POST http://localhost:3001/api/auth/login -H 'Content-Type: application/json' -d '{\"username\":\"admin\",\"password\":\"wrongpassword\"}')",
+      "Bash(curl -s -X POST http://localhost:3001/api/auth/reset-password -H 'Content-Type: application/json' -d '{\"email\":\"admin@cifo.com\"}')"
+    ]
+  }
+}

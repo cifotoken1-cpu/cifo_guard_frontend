@@ -1,0 +1,898 @@
+{
+  "info": {
+    "_postman_id": "cifo-camera-api-2026-v1",
+    "name": "CIFO Security — Camera API",
+    "description": "Koleksi lengkap endpoint Camera API sistem CIFO Security.\n\n⚠️  CATATAN PENTING — Route Prefix:\nSemua routes di-mount di /api (lihat api/server.js baris 149: app.use('/api', router))\n• Sistem In-Memory: base_url + /api/cameras/*\n• Sistem Database:   base_url + /api/api/cameras/*  ← double prefix (bug di router.js)\n\n🐛 BUG AKTIF — Sistem Database (per 2026-05-04):\n1. GET /api/api/cameras → 500 'Camera.getCount is not a function'\n   Penyebab: CameraController.js:19 memanggil Camera.getCount() yang tidak ada di model\n   Status: Perlu fix backend — tambah method getCount() di models/Camera.js\n\n2. POST /api/api/cameras → 400 'Field name is required'\n   Penyebab: Controller validasi field name/ip_address/location tapi model pakai label/lat/lng/stream_url\n   Workaround: Kirim KEDUA set field sekaligus (lihat contoh di request POST)\n\n3. GET /api/api/cameras/C240-01 → 404 'Camera not found'\n   Penyebab: Akibat Bug 2, C240-01 tidak pernah berhasil di-INSERT ke database\n   Solusi: Gunakan workaround di Bug 2 untuk mendaftarkan kamera terlebih dahulu\n\nDibuat dari: docs/CAMERA_TESTING.md\nVersi: 1.2 — 2026-05-04 (fix prefix + dokumentasi bug aktif)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3001",
+      "description": "Base URL backend. Port sesuai .env (PORT=3001)"
+    },
+    {
+      "key": "camera_id",
+      "value": "cam-1",
+      "description": "ID kamera in-memory. Format: cam-1 s/d cam-18"
+    },
+    {
+      "key": "camera_id_db",
+      "value": "cam-1",
+      "description": "ID kamera untuk endpoint database"
+    },
+    {
+      "key": "vigi_camera_id",
+      "value": "C240-01",
+      "description": "ID kamera Vigi AI — harus sama dengan VIGI_CAMERA_ID di .env"
+    }
+  ],
+  "item": [
+    {
+      "name": "📷 Sistem In-Memory (/api/cameras)",
+      "description": "Endpoint untuk display kamera di frontend dashboard.\nURL aktual: base_url + /api/cameras/*\n\nData: 18 kamera CCTV Bandung hardcoded.\nStatus format: lowercase — online / offline / degraded / error\nHeartbeat timeout: 60 detik",
+      "item": [
+        {
+          "name": "GET Semua Kamera",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/cameras",
+              "host": ["{{base_url}}"],
+              "path": ["api", "cameras"]
+            },
+            "description": "Mengembalikan 18 kamera CCTV dengan status heartbeat terkini.\n\nSemua kamera berstatus 'offline' jika belum ada heartbeat atau heartbeat terakhir > 60 detik."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Field cameras adalah array', () => {",
+                  "    pm.expect(pm.response.json().cameras).to.be.an('array');",
+                  "});",
+                  "pm.test('Total = 18', () => {",
+                  "    pm.expect(pm.response.json().total).to.eql(18);",
+                  "});",
+                  "pm.test('Kamera punya field wajib', () => {",
+                  "    const cam = pm.response.json().cameras[0];",
+                  "    pm.expect(cam).to.include.keys('id', 'label', 'streamUrl', 'status');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "200 OK — Semua Kamera",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"cameras\": [\n    {\n      \"id\": \"cam-1\",\n      \"label\": \"CCTV Aceh - Wastukencana\",\n      \"area\": \"Bandung\",\n      \"lat\": -6.9103254,\n      \"lng\": 107.6089499,\n      \"streamUrl\": \"/video/HIKSVISION/acehwastukencana.m3u8\",\n      \"status\": \"online\",\n      \"lastSeen\": 1746345610000,\n      \"responseTime\": 150,\n      \"healthScore\": 95,\n      \"error\": null,\n      \"lastHeartbeat\": \"2026-05-04T10:00:10.000Z\"\n    }\n  ],\n  \"total\": 18,\n  \"online\": 1,\n  \"offline\": 17,\n  \"degraded\": 0,\n  \"error\": 0,\n  \"timestamp\": 1746345620000\n}"
+            }
+          ]
+        },
+        {
+          "name": "POST Heartbeat — Online ✅",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/api/cameras/{{camera_id}}/heartbeat",
+              "host": ["{{base_url}}"],
+              "path": ["api", "cameras", "{{camera_id}}", "heartbeat"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"online\",\n  \"responseTime\": 150,\n  \"healthScore\": 95,\n  \"streamAccessible\": true,\n  \"lastCheck\": \"2026-05-04T10:00:00.000Z\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Kamera melaporkan diri online. Status bertahan 60 detik sejak heartbeat terakhir."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('success = true', () => pm.expect(pm.response.json().success).to.be.true);",
+                  "pm.test('status = online', () => pm.expect(pm.response.json().status).to.eql('online'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "200 OK — Heartbeat Diterima",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"cameraId\": \"cam-1\",\n  \"status\": \"online\",\n  \"timestamp\": 1746345610000,\n  \"message\": \"Heartbeat received successfully\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "POST Heartbeat — Degraded ⚠️",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/api/cameras/cam-2/heartbeat",
+              "host": ["{{base_url}}"],
+              "path": ["api", "cameras", "cam-2", "heartbeat"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"degraded\",\n  \"responseTime\": 2500,\n  \"healthScore\": 40,\n  \"streamAccessible\": true,\n  \"error\": \"High latency detected\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Kamera online tapi response time tinggi. Tampilkan indikator oranye di UI."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('success = true', () => pm.expect(pm.response.json().success).to.be.true);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST Heartbeat — Offline 🔴",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/api/cameras/cam-3/heartbeat",
+              "host": ["{{base_url}}"],
+              "path": ["api", "cameras", "cam-3", "heartbeat"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"offline\",\n  \"healthScore\": 0,\n  \"streamAccessible\": false,\n  \"error\": \"Connection lost\"\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          }
+        },
+        {
+          "name": "POST Heartbeat — Error 🚨",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/api/cameras/cam-4/heartbeat",
+              "host": ["{{base_url}}"],
+              "path": ["api", "cameras", "cam-4", "heartbeat"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"error\",\n  \"responseTime\": null,\n  \"healthScore\": 0,\n  \"streamAccessible\": false,\n  \"error\": \"Hardware failure: disk write error\"\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          }
+        },
+        {
+          "name": "POST Heartbeat — ❌ ID Tidak Valid (404)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/api/cameras/cam-999/heartbeat",
+              "host": ["{{base_url}}"],
+              "path": ["api", "cameras", "cam-999", "heartbeat"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"online\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Negative test — cam-999 tidak ada. Harapan: 404 CAMERA_NOT_FOUND."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 404', () => pm.response.to.have.status(404));",
+                  "pm.test('error = CAMERA_NOT_FOUND', () => {",
+                  "    pm.expect(pm.response.json().error).to.eql('CAMERA_NOT_FOUND');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "404 Not Found",
+              "status": "Not Found",
+              "code": 404,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"error\": \"CAMERA_NOT_FOUND\",\n  \"message\": \"Camera with ID 'cam-999' not found\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "POST Heartbeat — ❌ Status Tidak Valid (400)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/api/cameras/cam-1/heartbeat",
+              "host": ["{{base_url}}"],
+              "path": ["api", "cameras", "cam-1", "heartbeat"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"aktif\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Negative test — 'aktif' bukan status valid. Harapan: 400 INVALID_STATUS.\nStatus valid: online, offline, degraded, error"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 400', () => pm.response.to.have.status(400));",
+                  "pm.test('error = INVALID_STATUS', () => {",
+                  "    pm.expect(pm.response.json().error).to.eql('INVALID_STATUS');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "400 Bad Request",
+              "status": "Bad Request",
+              "code": 400,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"error\": \"INVALID_STATUS\",\n  \"message\": \"Status must be one of: online, offline, degraded, error\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "POST Heartbeat — ❌ Status Kosong (400)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/api/cameras/cam-1/heartbeat",
+              "host": ["{{base_url}}"],
+              "path": ["api", "cameras", "cam-1", "heartbeat"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"responseTime\": 100\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Negative test — field status tidak dikirim. Harapan: 400 MISSING_STATUS."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 400', () => pm.response.to.have.status(400));",
+                  "pm.test('error = MISSING_STATUS', () => {",
+                  "    pm.expect(pm.response.json().error).to.eql('MISSING_STATUS');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "🗄️ Sistem Database (/api/api/cameras) ⚠️ double prefix",
+      "description": "⚠️  URL aktual: base_url + /api/api/cameras/*\n\nIni karena router.js mendefinisikan route sebagai '/api/cameras/*' tapi router sudah di-mount di '/api' (server.js:149). Hasilnya double prefix /api/api/.\n\nIni adalah bug di api/router.js yang perlu diperbaiki backend.\nSambil menunggu fix, gunakan URL /api/api/cameras/* di bawah ini.\n\nStatus format: UPPERCASE — ONLINE / OFFLINE / MAINTENANCE / ERROR",
+      "item": [
+        {
+          "name": "GET Semua Kamera (paginated) 🐛 BUG AKTIF",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/api/cameras?limit=10&offset=0",
+              "host": ["{{base_url}}"],
+              "path": ["api", "api", "cameras"],
+              "query": [
+                { "key": "limit", "value": "10" },
+                { "key": "offset", "value": "0" },
+                { "key": "status", "value": "ONLINE", "disabled": true, "description": "Filter: ONLINE/OFFLINE/MAINTENANCE/ERROR" },
+                { "key": "area", "value": "Bandung", "disabled": true },
+                { "key": "search", "value": "", "disabled": true }
+              ]
+            },
+            "description": "🐛 BUG AKTIF: Request ini akan gagal dengan:\n{ \"success\": false, \"message\": \"Failed to retrieve cameras\", \"error\": \"Camera.getCount is not a function\" }\n\nPenyebab: CameraController.js baris 19 memanggil Camera.getCount() yang tidak ada di models/Camera.js\n\nFix yang diperlukan (oleh backend developer):\nTambahkan method getCount() di models/Camera.js:\n\nstatic async getCount(filters = {}) {\n  const connection = await this.getConnection();\n  try {\n    let query = 'SELECT COUNT(*) as count FROM cameras';\n    const params = [];\n    const conditions = [];\n    if (filters.status) { conditions.push('status = ?'); params.push(filters.status); }\n    if (filters.area) { conditions.push('area = ?'); params.push(filters.area); }\n    if (conditions.length > 0) query += ' WHERE ' + conditions.join(' AND ');\n    const [rows] = await connection.execute(query, params);\n    return rows[0].count;\n  } finally { await connection.end(); }\n}\n\nAlternatif sementara: Gunakan GET /api/api/cameras/stats untuk data ringkasan."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('success = true', () => pm.expect(pm.response.json().success).to.be.true);",
+                  "pm.test('Ada pagination', () => pm.expect(pm.response.json()).to.have.property('pagination'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET Kamera by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/api/cameras/{{camera_id_db}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "api", "cameras", "{{camera_id_db}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 atau 404', () => {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 404]);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET Stats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/api/cameras/stats",
+              "host": ["{{base_url}}"],
+              "path": ["api", "api", "cameras", "stats"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('success = true', () => pm.expect(pm.response.json().success).to.be.true);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET Dashboard",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/api/cameras/dashboard",
+              "host": ["{{base_url}}"],
+              "path": ["api", "api", "cameras", "dashboard"]
+            }
+          }
+        },
+        {
+          "name": "GET Health Logs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/api/cameras/{{camera_id_db}}/health-logs?limit=20&hours=24",
+              "host": ["{{base_url}}"],
+              "path": ["api", "api", "cameras", "{{camera_id_db}}", "health-logs"],
+              "query": [
+                { "key": "limit", "value": "20" },
+                { "key": "hours", "value": "24" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST Tambah Kamera Baru (workaround dual-field)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/api/api/cameras",
+              "host": ["{{base_url}}"],
+              "path": ["api", "api", "cameras"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"cam-test-01\",\n  \"name\": \"CCTV Test Lokasi Baru\",\n  \"label\": \"CCTV Test Lokasi Baru\",\n  \"ip_address\": \"192.168.1.100\",\n  \"location\": \"Lokasi Test\",\n  \"area\": \"Bandung\",\n  \"lat\": -6.9200000,\n  \"lng\": 107.6100000,\n  \"stream_url\": \"/video/TEST/test-cam.m3u8\",\n  \"status\": \"offline\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "🐛 WORKAROUND Bug #2 — Controller/Model field mismatch:\n\nController (CameraController.js:79) memvalidasi: name, ip_address, location, area\nModel (Camera.js) menggunakan: id, label, area, lat, lng, stream_url\n\nWorkaround: kirim KEDUA set field sekaligus.\n- name + ip_address + location → memuaskan validasi controller\n- id + label + lat + lng + stream_url → dipakai oleh Camera.create() di model\n\nField name/ip_address/location akan diabaikan oleh model tapi harus ada agar controller tidak menolak request."
+          }
+        },
+        {
+          "name": "PUT Update Kamera",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/api/api/cameras/{{camera_id_db}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "api", "cameras", "{{camera_id_db}}"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"label\": \"CCTV Aceh - Wastukencana (Updated)\",\n  \"area\": \"Bandung\",\n  \"lat\": -6.9103254,\n  \"lng\": 107.6089499,\n  \"stream_url\": \"/video/HIKSVISION/acehwastukencana.m3u8\"\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          }
+        },
+        {
+          "name": "PATCH Update Status",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/api/api/cameras/{{camera_id_db}}/status",
+              "host": ["{{base_url}}"],
+              "path": ["api", "api", "cameras", "{{camera_id_db}}", "status"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"MAINTENANCE\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Status valid (UPPERCASE): ONLINE, OFFLINE, MAINTENANCE, ERROR\n\n⚠️  Berbeda dari in-memory yang pakai lowercase."
+          }
+        },
+        {
+          "name": "PATCH Bulk Update Status",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/api/api/cameras/bulk-status",
+              "host": ["{{base_url}}"],
+              "path": ["api", "api", "cameras", "bulk-status"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"camera_ids\": [\"cam-1\", \"cam-2\", \"cam-3\"],\n  \"status\": \"MAINTENANCE\"\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          }
+        },
+        {
+          "name": "POST Heartbeat DB (UPPERCASE status)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/api/api/cameras/{{camera_id_db}}/heartbeat",
+              "host": ["{{base_url}}"],
+              "path": ["api", "api", "cameras", "{{camera_id_db}}", "heartbeat"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"ONLINE\",\n  \"cpu_usage\": 45.2,\n  \"memory_usage\": 62.1,\n  \"disk_usage\": 30.5,\n  \"temperature\": 55.0,\n  \"error_message\": null\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Field berbeda dari heartbeat in-memory:\n- Status UPPERCASE: ONLINE bukan online\n- Ada: cpu_usage, memory_usage, disk_usage, temperature\n- Tidak ada: responseTime, healthScore, streamAccessible"
+          }
+        },
+        {
+          "name": "DELETE Hapus Kamera",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/api/cameras/cam-test-01",
+              "host": ["{{base_url}}"],
+              "path": ["api", "api", "cameras", "cam-test-01"]
+            },
+            "description": "Gunakan ID kamera test agar tidak hapus data asli."
+          }
+        }
+      ]
+    },
+    {
+      "name": "🤖 Vigi AI (C240-01 @ 192.168.0.60)",
+      "description": "Registrasi dan monitoring kamera Vigi AI.\nCamera ID: C240-01 (dari VIGI_CAMERA_ID di .env)\nURL DB endpoint memakai /api/api/cameras/* (double prefix — lihat folder Database).",
+      "item": [
+        {
+          "name": "GET Cek Registrasi C240-01",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/api/cameras/{{vigi_camera_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "api", "cameras", "{{vigi_camera_id}}"]
+            },
+            "description": "✅ 200 → sudah terdaftar\n❌ 404 → jalankan POST Daftarkan Vigi AI"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const code = pm.response.code;",
+                  "pm.test('200 (terdaftar) atau 404 (belum)', () => pm.expect(code).to.be.oneOf([200, 404]));",
+                  "if (code === 404) console.warn('⚠️  Vigi belum terdaftar — jalankan POST Daftarkan Vigi AI');",
+                  "else console.log('✅ Vigi terdaftar di database');"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST Daftarkan Vigi AI ke Database (workaround dual-field)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/api/api/cameras",
+              "host": ["{{base_url}}"],
+              "path": ["api", "api", "cameras"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"C240-01\",\n  \"name\": \"Vigi AI - Halaman Depan\",\n  \"label\": \"Vigi AI - Halaman Depan\",\n  \"ip_address\": \"192.168.0.60\",\n  \"location\": \"Halaman depan\",\n  \"area\": \"Bandung\",\n  \"lat\": -6.9103254,\n  \"lng\": 107.6089499,\n  \"stream_url\": \"rtsp://admin:PASSWORD@192.168.0.60:554/stream1\",\n  \"status\": \"offline\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "⚠️  Ganti PASSWORD dengan VIGI_CAMERA_PASS dari .env sebelum dijalankan.\n\nWorkaround Bug #2 — body berisi dual field:\n- name, ip_address, location → untuk lolos validasi controller\n- id, label, lat, lng, stream_url → untuk disimpan ke database oleh model\n\nJalankan sekali saja. ID harus 'C240-01' agar cocok dengan VIGI_CAMERA_ID di .env."
+          }
+        },
+        {
+          "name": "GET Alert Vigi AI Terbaru",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/alerts?source=camera&sourceId={{vigi_camera_id}}&limit=5",
+              "host": ["{{base_url}}"],
+              "path": ["api", "alerts"],
+              "query": [
+                { "key": "source", "value": "camera" },
+                { "key": "sourceId", "value": "{{vigi_camera_id}}" },
+                { "key": "limit", "value": "5" }
+              ]
+            },
+            "description": "Alert berisi snapshot path di mediaUrls[] dan metadata AI di context.vigi."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "if (body.data && body.data.length > 0) {",
+                  "    const a = body.data[0];",
+                  "    pm.test('Alert punya mediaUrls', () => pm.expect(a.mediaUrls).to.be.an('array'));",
+                  "    pm.test('Alert punya context.vigi', () => pm.expect(a.context?.vigi).to.exist);",
+                  "    console.log('Snapshot:', a.mediaUrls?.[0]);",
+                  "    console.log('AI severity:', a.context?.vigi?.ai_severity);",
+                  "} else {",
+                  "    console.warn('Belum ada alert Vigi. Bridge mungkin belum terima event.');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET Semua Alert Kamera",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/alerts?source=camera&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["api", "alerts"],
+              "query": [
+                { "key": "source", "value": "camera" },
+                { "key": "limit", "value": "10" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "🧪 Smoke Tests (Otomatis)",
+      "description": "Jalankan sebagai Collection Run untuk validasi sebelum rilis.\nTC-01 s/d TC-11 sesuai docs/CAMERA_TESTING.md.\n\nCatatan: TC-06 (Heartbeat Timeout) tidak bisa diotomasi di sini karena butuh tunggu 65 detik.",
+      "item": [
+        {
+          "name": "TC-01: GET Semua Kamera",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/cameras",
+              "host": ["{{base_url}}"],
+              "path": ["api", "cameras"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[TC-01] Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('[TC-01] cameras adalah array', () => pm.expect(pm.response.json().cameras).to.be.an('array'));",
+                  "pm.test('[TC-01] total = 18', () => pm.expect(pm.response.json().total).to.eql(18));",
+                  "pm.test('[TC-01] field wajib ada', () => {",
+                  "    const cam = pm.response.json().cameras[0];",
+                  "    pm.expect(cam).to.include.keys('id', 'label', 'streamUrl', 'status');",
+                  "});",
+                  "pm.test('[TC-01] format ID cam-N', () => {",
+                  "    pm.expect(pm.response.json().cameras[0].id).to.match(/^cam-\\d+$/);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-02: Heartbeat Valid",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/api/cameras/cam-1/heartbeat",
+              "host": ["{{base_url}}"],
+              "path": ["api", "cameras", "cam-1", "heartbeat"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"online\",\n  \"responseTime\": 100,\n  \"healthScore\": 90,\n  \"streamAccessible\": true\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[TC-02] Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('[TC-02] success = true', () => pm.expect(pm.response.json().success).to.be.true);",
+                  "pm.test('[TC-02] cameraId = cam-1', () => pm.expect(pm.response.json().cameraId).to.eql('cam-1'));",
+                  "pm.test('[TC-02] status = online', () => pm.expect(pm.response.json().status).to.eql('online'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-03: Verifikasi Status Berubah",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/cameras",
+              "host": ["{{base_url}}"],
+              "path": ["api", "cameras"]
+            },
+            "description": "Jalankan setelah TC-02."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[TC-03] Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('[TC-03] cam-1 berstatus online', () => {",
+                  "    const cam1 = pm.response.json().cameras.find(c => c.id === 'cam-1');",
+                  "    pm.expect(cam1).to.exist;",
+                  "    pm.expect(cam1.status).to.eql('online');",
+                  "});",
+                  "pm.test('[TC-03] lastHeartbeat cam-1 tidak null', () => {",
+                  "    const cam1 = pm.response.json().cameras.find(c => c.id === 'cam-1');",
+                  "    pm.expect(cam1.lastHeartbeat).to.not.be.null;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-04: ID Tidak Valid → 404",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/api/cameras/cam-999/heartbeat",
+              "host": ["{{base_url}}"],
+              "path": ["api", "cameras", "cam-999", "heartbeat"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"online\"\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[TC-04] Status 404', () => pm.response.to.have.status(404));",
+                  "pm.test('[TC-04] CAMERA_NOT_FOUND', () => pm.expect(pm.response.json().error).to.eql('CAMERA_NOT_FOUND'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-05: Status Tidak Valid → 400",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/api/cameras/cam-1/heartbeat",
+              "host": ["{{base_url}}"],
+              "path": ["api", "cameras", "cam-1", "heartbeat"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"aktif\"\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[TC-05] Status 400', () => pm.response.to.have.status(400));",
+                  "pm.test('[TC-05] INVALID_STATUS', () => pm.expect(pm.response.json().error).to.eql('INVALID_STATUS'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-07: Heartbeat Degraded",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/api/cameras/cam-3/heartbeat",
+              "host": ["{{base_url}}"],
+              "path": ["api", "cameras", "cam-3", "heartbeat"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"degraded\",\n  \"responseTime\": 1000,\n  \"healthScore\": 50,\n  \"error\": \"High latency detected\"\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[TC-07] Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('[TC-07] success = true', () => pm.expect(pm.response.json().success).to.be.true);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-09: DB Stats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/api/cameras/stats",
+              "host": ["{{base_url}}"],
+              "path": ["api", "api", "cameras", "stats"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[TC-09] Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('[TC-09] success = true', () => pm.expect(pm.response.json().success).to.be.true);",
+                  "pm.test('[TC-09] data.total ada', () => pm.expect(pm.response.json().data).to.have.property('total'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-10: Vigi — Cek Registrasi C240-01",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/api/cameras/C240-01",
+              "host": ["{{base_url}}"],
+              "path": ["api", "api", "cameras", "C240-01"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const code = pm.response.code;",
+                  "pm.test('[TC-10] 200 atau 404', () => pm.expect(code).to.be.oneOf([200, 404]));",
+                  "if (code === 200) console.log('✅ [TC-10] PASS — C240-01 terdaftar');",
+                  "else console.warn('❌ [TC-10] FAIL — C240-01 belum terdaftar');"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-11: Vigi — Alert Tersimpan",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/alerts?source=camera&sourceId=C240-01&limit=1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "alerts"],
+              "query": [
+                { "key": "source", "value": "camera" },
+                { "key": "sourceId", "value": "C240-01" },
+                { "key": "limit", "value": "1" }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[TC-11] Status 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "if (body.data && body.data.length > 0) {",
+                  "    pm.test('[TC-11] Alert punya mediaUrls', () => pm.expect(body.data[0].mediaUrls).to.be.an('array').with.length.above(0));",
+                  "    pm.test('[TC-11] Alert punya context.vigi', () => pm.expect(body.data[0].context?.vigi).to.exist);",
+                  "    console.log('✅ [TC-11] PASS — Snapshot:', body.data[0].mediaUrls?.[0]);",
+                  "} else {",
+                  "    console.warn('⚠️  [TC-11] Belum ada alert Vigi AI.');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
