@@ -69,11 +69,12 @@ grep -rn "@stub: hybrid" src/ | wc -l
 | 🟢 **Resolved** (sebelumnya legacy/blocked) | **1** (#1 cameras: DB-backed sejak 2026-05-08) | — |
 | 🟢 **Removed** (placeholder dihapus) | **2** (#2 arm/disarm, #3 mode selector) | — |
 | 🟢 **Resolved** (sensors DB-backed) | **2** (#4 sensor list, #9 DEFAULT_SENSORS) | — |
+| 🟢 **Archived** (mockup audited) | **1** (#7 HTML mockups → docs/mockups/) | — |
 | 🟡 Hybrid | 2 | ✅ 2 marker |
 | 🟠 Backend-Blocked | 0 | — |
 | 🔴 Legacy | 0 | — |
-| ⚪ TBD | 2 | — |
-| **Total entry yang membutuhkan perhatian** | **4** | **2 ditandai** |
+| ⚪ TBD | 1 | — |
+| **Total entry yang membutuhkan perhatian** | **3** | **2 ditandai** |
 
 **GitHub backlog:** issue #2, #3, #4, #5 (epic) + #6–#13 (action items). Lihat label `tracking`, `integration:*`.
 
@@ -91,7 +92,7 @@ grep -rn "@stub: hybrid" src/ | wc -l
 | 4 | ~~**Sensor list** (door / motion / glass)~~ → **DB-backed via /api/sensors** | `backend/migrations/013_create_sensors_table.sql`, `backend/models/Sensor.js`, `backend/controllers/SensorController.js`; `src/api/sensors.api.js`, `src/hooks/useSensorsStream.js`; consumed di `src/features/dashboard/CenterPanel.jsx` | 🟢 RESOLVED (2026-05-08) | Endpoint `GET /api/sensors` dibuat dengan response `{ data, sensors, total, summary }`. Tabel `sensors` di-seed 6 entry (sebelumnya hardcoded di `DEFAULT_SENSORS`). Frontend ganti dari `deriveSensors()` text-matching ke `useSensors()` hook. Logic derivasi + DEFAULT_SENSORS + deriveStatus dihapus. | — | — | — | ✅ Resolved — closes #8 |
 | 5 | **GPS fallback** | `src/utils/geo.js` (`FALLBACK_GPS` constant); dipakai di `src/features/panic/PanicConfirmModal.jsx` | 🟡 HYBRID | Konstanta default saat browser geolocation gagal/denied. **Sengaja** — panic flow tetap bisa kirim alert walau tanpa GPS akurat. | Tandai dengan `// @stub: hybrid`. Tidak perlu dihapus. | — (by design) | Frontend dev | ✅ Marker added |
 | 6 | **Animated background placeholder** (CameraCard) | `src/features/cameras/CameraCard.jsx` | 🟡 HYBRID | Placeholder visual cyberpunk saat `cam.streamUrl` kosong / non-`.m3u8`. **Sengaja** — UX lebih baik daripada blank. | Tandai dengan `// @stub: hybrid`. Tidak perlu dihapus. | — (by design) | Frontend dev | ✅ Marker added |
-| 7 | **HTML mockups di root repo** | `Incident Response.html`, `Interactive Map.html`, `Panic Alerts.html`, `Team Management.html`, `Visitor Registration.html` | ⚪ TBD | 5 file HTML mockup di repo root. **Status kabur**: masih jadi referensi desain, atau sudah obsolete karena React app sudah implement? | **PO decision:** (a) Audit per file → React app sudah cover atau belum, (b) Kalau sudah cover → pindah ke `docs/mockups/` atau hapus, (c) Update README dengan konvensi mockup. | Keputusan PO | PO + Frontend dev | Pending — issue [#11](https://github.com/cifotoken1-cpu/cifo_guard_frontend/issues/11) |
+| 7 | ~~**HTML mockups di root repo**~~ → **Diarchive ke `docs/mockups/`** | `docs/mockups/legacy/` (4 file: Incident Response, Interactive Map, Panic Alerts, Team Management); `docs/mockups/active/` (1 file: Visitor Registration); `docs/mockups/README.md` | 🟢 RESOLVED (2026-05-08) | Audit selesai. 4 file dengan React equivalent dipindah ke `legacy/`, 1 file (Visitor Registration) yang belum ada React equivalent dipindah ke `active/` sebagai referensi desain aktif. README dengan audit table di-tulis. Root repo bersih dari clutter HTML. | — | — | — | ✅ Resolved — closes #11 |
 | 8 | **Vigi AI camera injection** (turunan dari #1) | `src/api/cameras.api.js` (logic injeksi di `list()`) | ⚪ TBD | Apakah injeksi data Vigi AI di list legacy sudah merepresentasikan integrasi real ke pipeline AI, atau ini juga mockup? Perlu klarifikasi. | Klarifikasi dengan backend: apakah `/api/cameras` real-mengembalikan kamera Vigi yang ter-AI-detect? Kalau ya → reklasifikasi jadi 🟢. Kalau tidak → 🔴. | Backend team | Backend dev untuk klarifikasi | Pending |
 | 9 | ~~**`DEFAULT_SENSORS` hardcoded** (6 sensor fallback)~~ → **REMOVED** | (dihapus dari `CenterPanel.jsx`, di-seed di `013_create_sensors_table.sql`) | 🟢 RESOLVED (2026-05-08) | Konstanta dihapus penuh dari frontend. 6 entry sensor sekarang di-seed di tabel `sensors` (DB) — bukan lagi fallback array di JS. Empty state UI jujur (`No sensor activity yet.`) tampil kalau DB kosong. | — | — | — | ✅ Resolved — sub-issue #8 |
 
