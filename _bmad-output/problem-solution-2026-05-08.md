@@ -66,11 +66,69 @@ _Pending — Step 2 ke depan._
 
 ### Problem Boundaries (Is/Is Not)
 
-_Pending._
+#### 🟢 IS — Di mana masalah MUNCUL
+
+| Area | File | Tipe Dummy |
+|---|---|---|
+| Camera list (legacy) | `src/api/cameras.api.js` `list()` | 18 kamera hardcoded + injeksi Vigi AI |
+| Camera card placeholder | `src/features/cameras/CameraCard.jsx` | Animated background bila `streamUrl` kosong / non-`.m3u8` |
+| Panic GPS fallback | `src/utils/geo.js` | `FALLBACK_GPS` constant saat geolocation gagal |
+| System armed status | `src/store/system.store.js` | Local-only state (no backend endpoint) |
+| System mode (Home/Night/Silent) | `src/store/system.store.js` | Local-only state (no backend endpoint) |
+| Sensor list di home view | `src/features/dashboard/CenterPanel.jsx` | Diderivasi dari `activities/recent` (bukan endpoint dedicated) |
+| HTML mockups di root | `Incident Response.html`, `Interactive Map.html`, `Panic Alerts.html`, `Team Management.html`, `Visitor Registration.html` | Mockup statis — status referensi/obsolete belum jelas |
+| Default initial state | Beberapa komponen mungkin punya placeholder text/skeleton | Belum diaudit |
+
+#### 🔴 IS NOT — Di mana masalah TIDAK muncul (sudah real-API)
+
+| Area | Bukti Real Integrasi |
+|---|---|
+| Auth flow | `authApi.login/logout/changePassword` |
+| Alerts modal & stats | `useActiveAlerts`, `useAlertStats` + WS `alert_created`/`alert_updated` |
+| Incident kanban & detail | `useIncidents`, `useIncidentDetail` + WS `incident_*` |
+| Panic monitor | `usePanicAlerts` + WS legacy `ALERT_CREATED`/`ALERT_UPDATED` |
+| User management CRUD | `usersApi.list/create/update/delete/changeRole/unlock` |
+| Trigger panic alert | `alertsApi.triggerPanic` POST `/api/panic` |
+| System health | `useHealth`, `useMetrics` |
+| Camera heartbeat | `camerasApi.heartbeat` polling 30s |
+
+#### 🕒 WHEN — Kapan dummy muncul vs tidak
+
+| Muncul saat | Tidak muncul saat |
+|---|---|
+| Backend endpoint belum diimplementasi (arm, mode, sensors) | Backend up & endpoint sudah ada |
+| `streamUrl` kosong / format non-HLS | `streamUrl` valid `.m3u8` |
+| Geolocation API gagal/denied | GPS izin granted & sukses |
+| First-render sebelum query selesai | Data sudah cache/refetch |
+| Token kedaluwarsa → empty state | Authenticated session |
+
+#### 👥 WHO — Siapa yang terdampak
+
+- Developer — ambiguitas, takut break "real"
+- QA — sulit menyusun test plan
+- Stakeholder demo — risiko data palsu dilihat sebagai real
+- Backend engineer — tidak tahu prioritas endpoint
+- Onboarding dev baru — trial-and-error mahal
+
+**Tidak terdampak:** End user runtime — kalau backend hidup, mereka dapat data real.
+
+#### 🎯 WHAT — Apa masalahnya & BUKAN masalahnya
+
+| Masalah | BUKAN masalah |
+|---|---|
+| Tidak ada inventaris status integrasi | Performance / load time |
+| Tidak ada penanda di kode | Security / authz |
+| Mixing real + dummy tanpa label | Design / UX visual |
+| Local-only state menyamar sebagai system state | Keberadaan fallback (sebagian sengaja) |
+| HTML mockup di root tanpa status jelas | Kode yang sudah real |
+
+#### 💡 Pola yang Muncul
+
+Sebagian besar dummy adalah **konsekuensi ketidaksiapan backend** (arm/mode/sensors/cameras-database), bukan kemalasan frontend. Ini membedakan **dummy yang sengaja (fallback UX yang valid)** dari **dummy yang tertinggal (legacy yang harus diganti)**. Solusi inventaris harus bisa membedakan kedua kategori ini.
 
 ### Root Cause Analysis
 
-_Pending._
+_Pending — Step 3._
 
 ### Contributing Factors
 
