@@ -11,6 +11,7 @@ const { alertQueue } = require('./queue.js');
 const AlertController = require('../controllers/AlertController');
 const CameraController = require('../controllers/CameraController');
 const Camera = require('../models/Camera');
+const SensorController = require('../controllers/SensorController');
 const TeamController = require('../controllers/TeamController');
 const ActivityController = require('../controllers/ActivityController');
 const PerumahanController = require('../controllers/PerumahanController');
@@ -1026,6 +1027,11 @@ router.get('/security/team/status', trackLatency, (req, res) => {
     });
   }
 });
+
+// Sensor endpoints — resolves #8
+router.get('/sensors', SensorController.getAllSensors);
+router.get('/sensors/:id', SensorController.getSensorById);
+router.patch('/sensors/:id/status', SensorController.updateSensorStatus);
 
 // Activity endpoints
 router.get('/activities', ActivityController.getAllActivities);

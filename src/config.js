@@ -13,6 +13,7 @@ export const DEFAULT_USER_ID = import.meta.env.VITE_DEFAULT_USER_ID || 'guard-00
 export const REFETCH = {
   alertsStats: 30_000,
   cameras: 15_000,
+  sensors: 15_000,
   activitiesRecent: 10_000,
   health: 30_000,
   metrics: 30_000,

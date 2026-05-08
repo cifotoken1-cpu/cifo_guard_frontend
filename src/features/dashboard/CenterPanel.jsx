@@ -9,6 +9,7 @@ import { MediaView } from '../media/MediaView';
 import { UsersPage } from '../users/UsersPage';
 import { useActiveAlerts } from '../../hooks/useAlertsStream';
 import { useCameras } from '../../hooks/useCamerasStream';
+import { useSensors } from '../../hooks/useSensorsStream';
 import { useRecentActivities } from '../../hooks/useActivitiesStream';
 import { useClock } from '../../hooks/useClock';
 import { relativeTime } from '../../utils/format';
@@ -28,6 +29,7 @@ export function CenterPanel() {
 
   const { data: alertsData } = useActiveAlerts();
   const { data: camerasData } = useCameras();
+  const { data: sensorsData } = useSensors();
   const { data: activities } = useRecentActivities(20);
 
   // New dedicated views for panic, incidents, map, and media
@@ -65,9 +67,9 @@ export function CenterPanel() {
   const activeAlerts = alertsData?.alerts ?? alertsData ?? [];
   const alertCount = Array.isArray(activeAlerts) ? activeAlerts.length : 0;
   const camerasOnline = camerasData?.online ?? 0;
-  const sensors = deriveSensors(activities);
-  const sensorsClear = sensors.filter((s) => s.status === 'clear').length;
-  const openCount = sensors.filter((s) => s.status === 'open').length;
+  const sensors = sensorsData?.sensors ?? [];
+  const sensorsClear = sensorsData?.summary?.clear ?? 0;
+  const openCount = sensorsData?.summary?.open ?? 0;
 
   // Camera data
   const cameras = normalizeCameraList(camerasData) ?? [];
@@ -152,7 +154,7 @@ export function CenterPanel() {
                 <div className={styles.sensorInfo}>
                   <div className={styles.sensorName}>{sen.name}</div>
                   <div className={styles.sensorTime}>
-                    {sen.loc} · {sen.time}
+                    {sen.location || '—'} · {sen.last_event_at ? relativeTime(sen.last_event_at) : '—'}
                   </div>
                 </div>
                 <span className={`${styles.sensorStatus} ${styles[`status_${sen.status}`]}`}>
@@ -233,52 +235,6 @@ const STATUS_LABEL = {
   alert: 'Alert!',
   offline: 'Offline',
 };
-
-/**
- * Derive sensor list from recent activities.
- * Backend doesn't have a dedicated /sensors endpoint yet, so we infer from activity types.
- *
- * @stub: backend-blocked — /api/sensors endpoint belum ada, sensor di-derive dari activities/recent (fragile, race-prone). Lihat #8, INTEGRATION_STATUS.md #4.
- */
-function deriveSensors(activities) {
-  if (!activities || !Array.isArray(activities)) return DEFAULT_SENSORS;
-  if (activities.length === 0) return DEFAULT_SENSORS;
-
-  // Filter for sensor-related activities
-  const sensorActs = activities.filter((a) => {
-    const t = (a.type || '').toUpperCase();
-    return t.includes('DOOR') || t.includes('MOTION') || t.includes('SENSOR') || t.includes('PIR');
-  });
-
-  if (sensorActs.length === 0) return DEFAULT_SENSORS;
-
-  return sensorActs.slice(0, 8).map((a, i) => ({
-    id: a.id ?? i,
-    type: (a.type || '').toUpperCase().includes('MOTION') ? 'motion' : 'door',
-    name: a.description?.slice(0, 40) || a.type || 'Sensor',
-    loc: a.metadata?.location || a.actor_type || 'Unknown',
-    time: relativeTime(a.timestamp),
-    status: deriveStatus(a),
-  }));
-}
-
-function deriveStatus(activity) {
-  const sev = (activity.severity || '').toUpperCase();
-  if (sev === 'CRITICAL' || sev === 'ERROR') return 'alert';
-  if (sev === 'WARNING') return 'open';
-  return 'clear';
-}
-
-// @stub: backend-blocked — 6 sensor hardcoded sebagai fallback saat activities kosong (UX dev). Hapus saat /api/sensors siap. Lihat #8, INTEGRATION_STATUS.md #4.
-// Fallback when no real data yet — keeps UI looking populated during dev
-const DEFAULT_SENSORS = [
-  { id: 0, type: 'door', name: 'Living Room Door', loc: 'Ground Floor', time: '23 hrs ago', status: 'open' },
-  { id: 1, type: 'door', name: 'Guest Bedroom Door', loc: 'First Floor', time: '12 hrs ago', status: 'open' },
-  { id: 2, type: 'motion', name: 'TV Cabinet PIR', loc: 'Living Room', time: '7 min ago', status: 'clear' },
-  { id: 3, type: 'motion', name: 'First Hallway Motion', loc: 'Ground Floor', time: '7 min ago', status: 'clear' },
-  { id: 4, type: 'door', name: 'Front Door Sensor', loc: 'Exterior', time: '2 days ago', status: 'clear' },
-  { id: 5, type: 'motion', name: 'Garage Motion', loc: 'Exterior', time: '1 hr ago', status: 'alert' },
-];
 
 /**
  * Map activities to activity log entries
