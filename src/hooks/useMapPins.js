@@ -58,14 +58,21 @@ export function useMapPins() {
     }));
 
   const panicPins = panicAlerts
-    .filter((a) => a.location?.lat != null && a.location?.lng != null)
+    .map((a) => {
+      const gps =
+        (a.location?.lat != null ? { latitude: a.location.lat, longitude: a.location.lng } : null) ||
+        (a.coordinatesLat != null ? { latitude: a.coordinatesLat, longitude: a.coordinatesLng } : null) ||
+        (a.metadata?.originalRequest?.gps?.latitude != null ? a.metadata.originalRequest.gps : null);
+      return gps ? { ...a, _gps: gps } : null;
+    })
+    .filter(Boolean)
     .map((a) => ({
       id: a.id,
       type: 'panic',
       name: a.title || a.alertId || 'Panic Alert',
       sub: a.alertId,
-      x: lngToX(a.location.lng),
-      y: latToY(a.location.lat),
+      x: lngToX(a._gps.longitude),
+      y: latToY(a._gps.latitude),
       color: 'var(--red)',
       data: a,
     }));
