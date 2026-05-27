@@ -36,13 +36,16 @@ export function PanicAlertDetail({ alert }) {
   const responderCount =
     alert.acknowledgedCount ?? alert.recipients?.length ?? '—';
 
+  const gps =
+    (alert.gps?.latitude != null ? alert.gps : null) ||
+    (alert.metadata?.originalRequest?.gps?.latitude != null
+      ? alert.metadata.originalRequest.gps
+      : null);
   const locationLabel =
     loc?.address ||
     loc?.zone ||
     loc?.building ||
-    (alert.gps?.latitude != null
-      ? `${Number(alert.gps.latitude).toFixed(4)}, ${Number(alert.gps.longitude).toFixed(4)}`
-      : null) ||
+    (gps ? `${Number(gps.latitude).toFixed(4)}, ${Number(gps.longitude).toFixed(4)}` : null) ||
     'Lokasi tidak tersedia';
 
   return (

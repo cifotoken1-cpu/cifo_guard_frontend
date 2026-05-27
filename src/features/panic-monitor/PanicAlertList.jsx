@@ -9,13 +9,16 @@ function initials(name) {
 }
 
 function locationLabel(alert) {
+  const gps =
+    (alert.gps?.latitude != null ? alert.gps : null) ||
+    (alert.metadata?.originalRequest?.gps?.latitude != null
+      ? alert.metadata.originalRequest.gps
+      : null);
   return (
     alert.location?.address ||
     alert.location?.zone ||
     alert.location?.building ||
-    (alert.gps?.latitude != null
-      ? `${Number(alert.gps.latitude).toFixed(4)}, ${Number(alert.gps.longitude).toFixed(4)}`
-      : null) ||
+    (gps ? `${Number(gps.latitude).toFixed(4)}, ${Number(gps.longitude).toFixed(4)}` : null) ||
     'Lokasi tidak tersedia'
   );
 }
