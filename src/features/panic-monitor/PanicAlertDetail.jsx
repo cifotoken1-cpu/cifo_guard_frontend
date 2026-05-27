@@ -3,11 +3,13 @@ import styles from './panic-monitor.module.css';
 
 export function PanicAlertDetail({ alert }) {
   const [tick, setTick] = useState(0);
+  const isResolved = alert?.status === 'RESOLVED';
 
   useEffect(() => {
+    if (isResolved) return;
     const t = setInterval(() => setTick((x) => x + 1), 1000);
     return () => clearInterval(t);
-  }, []);
+  }, [isResolved]);
 
   if (!alert) {
     return (
@@ -19,7 +21,10 @@ export function PanicAlertDetail({ alert }) {
     );
   }
 
-  const elapsedMs = Date.now() - new Date(alert.createdAt).getTime();
+  const endTime = isResolved
+    ? new Date(alert.resolvedAt || alert.updatedAt || Date.now()).getTime()
+    : Date.now();
+  const elapsedMs = endTime - new Date(alert.createdAt).getTime();
   const elapsedSec = Math.floor(elapsedMs / 1000);
   const m = Math.floor(elapsedSec / 60);
   const s = elapsedSec % 60;
@@ -54,8 +59,15 @@ export function PanicAlertDetail({ alert }) {
             <div className={styles.bannerSub}>{locationLabel}</div>
           </div>
           <div className={styles.elapsed}>
-            <div className={styles.elapsedLabel}>ELAPSED</div>
-            <div className={styles.elapsedTime}>{elapsedStr}</div>
+            <div className={styles.elapsedLabel}>{isResolved ? 'RESPONSE TIME' : 'ELAPSED'}</div>
+            <div className={styles.elapsedTime} style={isResolved ? { color: 'var(--green)' } : undefined}>
+              {elapsedStr}
+            </div>
+            {isResolved && (
+              <div style={{ fontSize: 10, color: 'var(--green)', marginTop: 2, textAlign: 'right' }}>
+                Ditangani dalam {m > 0 ? `${m} mnt ` : ''}{s} dtk
+              </div>
+            )}
           </div>
         </div>
       </div>
