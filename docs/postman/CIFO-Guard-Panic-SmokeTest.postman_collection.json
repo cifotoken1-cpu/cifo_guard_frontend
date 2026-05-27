@@ -1,0 +1,497 @@
+{
+  "info": {
+    "name": "CIFO Guard — Panic Alert Smoke Test",
+    "description": "Smoke test collection untuk QA memvalidasi panic alert flow via Postman.\nAlur: Login → Trigger Panic → List Alerts → Get Detail → Acknowledge → Resolve\n\nPetunjuk:\n1. Import collection ini ke Postman\n2. Set environment variable BASE_URL ke URL backend (contoh: http://localhost:3000/api)\n3. Jalankan folder secara berurutan: 00 → 01 → 02 → 03 → 04 → 05\n4. Token JWT otomatis tersimpan setelah Login (step 00)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "BASE_URL",
+      "value": "http://localhost:3000/api",
+      "description": "Base URL backend. Ganti sesuai environment (local/staging)."
+    },
+    {
+      "key": "TOKEN",
+      "value": "",
+      "description": "JWT token — otomatis diisi setelah Login berhasil."
+    },
+    {
+      "key": "ALERT_ID",
+      "value": "",
+      "description": "ID panic alert — otomatis diisi setelah Trigger Panic berhasil."
+    }
+  ],
+  "item": [
+    {
+      "name": "00 — Auth",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Ada token di response', () => {",
+                  "  const body = pm.response.json();",
+                  "  const token = body?.data?.token || body?.token;",
+                  "  pm.expect(token).to.be.a('string');",
+                  "  pm.collectionVariables.set('TOKEN', token);",
+                  "  console.log('Token tersimpan:', token.substring(0, 30) + '...');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"password123\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/auth/login",
+              "host": ["{{BASE_URL}}"],
+              "path": ["auth", "login"]
+            },
+            "description": "Login sebagai admin/guard. Token JWT otomatis disimpan ke variabel TOKEN."
+          }
+        },
+        {
+          "name": "Get Me (verify token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Ada data user di response', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body?.data || body?.user).to.exist;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}" }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/auth/me",
+              "host": ["{{BASE_URL}}"],
+              "path": ["auth", "me"]
+            },
+            "description": "Verifikasi token valid dan user terautentikasi."
+          }
+        }
+      ]
+    },
+    {
+      "name": "01 — Trigger Panic",
+      "item": [
+        {
+          "name": "POST /panic — CRIME type (with GPS)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 atau 201', () => {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "pm.test('Response ada alertId', () => {",
+                  "  const body = pm.response.json();",
+                  "  const alertId = body?.data?.alertId || body?.data?.id || body?.alertId || body?.id;",
+                  "  pm.expect(alertId).to.exist;",
+                  "  pm.collectionVariables.set('ALERT_ID', alertId);",
+                  "  console.log('Alert ID tersimpan:', alertId);",
+                  "});",
+                  "pm.test('ingest_latency_ms ada di response', () => {",
+                  "  const body = pm.response.json();",
+                  "  const latency = body?.data?.ingest_latency_ms ?? body?.ingest_latency_ms;",
+                  "  pm.expect(latency).to.be.a('number');",
+                  "  console.log('Latency:', latency + 'ms');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"CRIME\",\n  \"userId\": \"guard-001\",\n  \"requestId\": \"smoke-test-{{$randomUUID}}\",\n  \"gps\": {\n    \"latitude\": -6.2088,\n    \"longitude\": 106.8456,\n    \"accuracy\": 10\n  }\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/panic",
+              "host": ["{{BASE_URL}}"],
+              "path": ["panic"]
+            },
+            "description": "Trigger panic alert tipe CRIME dengan koordinat GPS.\nAlert ID otomatis disimpan ke variabel ALERT_ID."
+          }
+        },
+        {
+          "name": "POST /panic — MEDICAL type (GPS fallback)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 atau 201', () => {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "pm.test('Tetap berhasil meski GPS fallback', () => {",
+                  "  const body = pm.response.json();",
+                  "  const alertId = body?.data?.alertId || body?.data?.id || body?.alertId || body?.id;",
+                  "  pm.expect(alertId).to.exist;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"MEDICAL\",\n  \"userId\": \"guard-001\",\n  \"requestId\": \"smoke-test-fallback-{{$randomUUID}}\",\n  \"gps\": {\n    \"latitude\": -2.5489,\n    \"longitude\": 118.0149,\n    \"accuracy\": 999\n  }\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/panic",
+              "host": ["{{BASE_URL}}"],
+              "path": ["panic"]
+            },
+            "description": "Trigger panic dengan GPS fallback (koordinat center Indonesia).\nVerifikasi AC-10: panic tetap terkirim meski GPS tidak akurat."
+          }
+        },
+        {
+          "name": "POST /panic — tanpa auth (expect 401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 401 Unauthorized', () => {",
+                  "  pm.response.to.have.status(401);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"FIRE\",\n  \"userId\": \"guard-001\",\n  \"requestId\": \"smoke-no-auth\",\n  \"gps\": { \"latitude\": -6.2088, \"longitude\": 106.8456, \"accuracy\": 10 }\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/panic",
+              "host": ["{{BASE_URL}}"],
+              "path": ["panic"]
+            },
+            "description": "Verifikasi AC-1: tanpa token harus dapat 401."
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 — List & Monitor",
+      "item": [
+        {
+          "name": "GET /alerts?category=PANIC_BUTTON",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Response berisi array alerts', () => {",
+                  "  const body = pm.response.json();",
+                  "  const alerts = body?.data?.alerts || body?.data || body?.alerts || body;",
+                  "  pm.expect(Array.isArray(alerts)).to.be.true;",
+                  "  console.log('Total panic alerts:', alerts.length);",
+                  "});",
+                  "pm.test('Alert yang baru dibuat ada di list', () => {",
+                  "  const alertId = pm.collectionVariables.get('ALERT_ID');",
+                  "  if (!alertId) { console.warn('ALERT_ID kosong — skip check'); return; }",
+                  "  const body = pm.response.json();",
+                  "  const alerts = body?.data?.alerts || body?.data || body?.alerts || [];",
+                  "  const found = alerts.some(a => a.id === alertId || a.alertId === alertId);",
+                  "  pm.expect(found).to.be.true;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}" }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/alerts?category=PANIC_BUTTON&sortBy=created_at&sortOrder=DESC",
+              "host": ["{{BASE_URL}}"],
+              "path": ["alerts"],
+              "query": [
+                { "key": "category", "value": "PANIC_BUTTON" },
+                { "key": "sortBy", "value": "created_at" },
+                { "key": "sortOrder", "value": "DESC" }
+              ]
+            },
+            "description": "List semua panic alerts, sorted terbaru dulu.\nVerifikasi alert yang baru di-trigger ada di list."
+          }
+        },
+        {
+          "name": "GET /alerts?category=PANIC_BUTTON&status=ACTIVE",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Semua alert berstatus ACTIVE', () => {",
+                  "  const body = pm.response.json();",
+                  "  const alerts = body?.data?.alerts || body?.data || body?.alerts || [];",
+                  "  alerts.forEach(a => pm.expect(a.status).to.equal('ACTIVE'));",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}" }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/alerts?category=PANIC_BUTTON&status=ACTIVE&sortBy=created_at&sortOrder=DESC",
+              "host": ["{{BASE_URL}}"],
+              "path": ["alerts"],
+              "query": [
+                { "key": "category", "value": "PANIC_BUTTON" },
+                { "key": "status", "value": "ACTIVE" },
+                { "key": "sortBy", "value": "created_at" },
+                { "key": "sortOrder", "value": "DESC" }
+              ]
+            },
+            "description": "Filter hanya alert ACTIVE."
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 — Alert Detail",
+      "item": [
+        {
+          "name": "GET /alerts/:id — detail alert",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Detail alert lengkap', () => {",
+                  "  const body = pm.response.json();",
+                  "  const alert = body?.data || body;",
+                  "  pm.expect(alert.id || alert.alertId).to.exist;",
+                  "  pm.expect(alert.status).to.exist;",
+                  "  pm.expect(alert.category).to.equal('PANIC_BUTTON');",
+                  "  pm.expect(alert.createdAt).to.exist;",
+                  "  console.log('Status:', alert.status);",
+                  "  console.log('Recipients:', alert.recipients?.length ?? 0);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}" }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/alerts/{{ALERT_ID}}",
+              "host": ["{{BASE_URL}}"],
+              "path": ["alerts", "{{ALERT_ID}}"]
+            },
+            "description": "Get detail alert yang baru di-trigger.\nVerifikasi recipients list dan status."
+          }
+        },
+        {
+          "name": "GET /alerts/:id — ID tidak ada (expect 404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 404', () => {",
+                  "  pm.response.to.have.status(404);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}" }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/alerts/id-tidak-ada-12345",
+              "host": ["{{BASE_URL}}"],
+              "path": ["alerts", "id-tidak-ada-12345"]
+            },
+            "description": "Verifikasi 404 untuk alert ID yang tidak ada."
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 — Acknowledge",
+      "item": [
+        {
+          "name": "PATCH /alerts/:id/acknowledge",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Status berubah ke ACKNOWLEDGED', () => {",
+                  "  const body = pm.response.json();",
+                  "  const alert = body?.data || body;",
+                  "  pm.expect(alert.status).to.equal('ACKNOWLEDGED');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/alerts/{{ALERT_ID}}/acknowledge",
+              "host": ["{{BASE_URL}}"],
+              "path": ["alerts", "{{ALERT_ID}}", "acknowledge"]
+            },
+            "description": "Acknowledge alert — status berubah ACTIVE → ACKNOWLEDGED."
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 — Resolve",
+      "item": [
+        {
+          "name": "PATCH /alerts/:id/resolve",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Status berubah ke RESOLVED', () => {",
+                  "  const body = pm.response.json();",
+                  "  const alert = body?.data || body;",
+                  "  pm.expect(alert.status).to.equal('RESOLVED');",
+                  "  console.log('resolvedAt:', alert.resolvedAt || alert.updatedAt);",
+                  "});",
+                  "pm.test('resolvedAt atau updatedAt ada', () => {",
+                  "  const body = pm.response.json();",
+                  "  const alert = body?.data || body;",
+                  "  pm.expect(alert.resolvedAt || alert.updatedAt).to.exist;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/alerts/{{ALERT_ID}}/resolve",
+              "host": ["{{BASE_URL}}"],
+              "path": ["alerts", "{{ALERT_ID}}", "resolve"]
+            },
+            "description": "Resolve alert — status berubah ke RESOLVED.\nVerifikasi resolvedAt/updatedAt ada (dipakai frontend untuk freeze timer)."
+          }
+        },
+        {
+          "name": "GET /alerts/:id — verify RESOLVED + resolvedAt",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Status = RESOLVED', () => {",
+                  "  const body = pm.response.json();",
+                  "  const alert = body?.data || body;",
+                  "  pm.expect(alert.status).to.equal('RESOLVED');",
+                  "});",
+                  "pm.test('resolvedAt atau updatedAt tersedia untuk freeze timer', () => {",
+                  "  const body = pm.response.json();",
+                  "  const alert = body?.data || body;",
+                  "  pm.expect(alert.resolvedAt || alert.updatedAt).to.exist;",
+                  "  console.log('resolvedAt:', alert.resolvedAt);",
+                  "  console.log('updatedAt:', alert.updatedAt);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}" }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/alerts/{{ALERT_ID}}",
+              "host": ["{{BASE_URL}}"],
+              "path": ["alerts", "{{ALERT_ID}}"]
+            },
+            "description": "Verifikasi final: alert sudah RESOLVED dan ada timestamp resolvedAt/updatedAt.\nIni penting untuk feature freeze timer di dashboard (Bug #4 fix)."
+          }
+        }
+      ]
+    }
+  ]
+}
