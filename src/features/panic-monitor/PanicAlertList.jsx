@@ -13,6 +13,9 @@ function locationLabel(alert) {
     alert.location?.address ||
     alert.location?.zone ||
     alert.location?.building ||
+    (alert.gps?.latitude != null
+      ? `${Number(alert.gps.latitude).toFixed(4)}, ${Number(alert.gps.longitude).toFixed(4)}`
+      : null) ||
     'Lokasi tidak tersedia'
   );
 }

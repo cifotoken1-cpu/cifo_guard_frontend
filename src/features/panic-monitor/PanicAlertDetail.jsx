@@ -37,7 +37,13 @@ export function PanicAlertDetail({ alert }) {
     alert.acknowledgedCount ?? alert.recipients?.length ?? '—';
 
   const locationLabel =
-    loc?.address || loc?.zone || loc?.building || 'Lokasi tidak tersedia';
+    loc?.address ||
+    loc?.zone ||
+    loc?.building ||
+    (alert.gps?.latitude != null
+      ? `${Number(alert.gps.latitude).toFixed(4)}, ${Number(alert.gps.longitude).toFixed(4)}`
+      : null) ||
+    'Lokasi tidak tersedia';
 
   return (
     <div className={styles.detail}>
