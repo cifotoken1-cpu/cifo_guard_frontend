@@ -89,6 +89,22 @@ export function MapCanvas({ pins, layers, selectedPinId, onPinClick }) {
         ))}
       </svg>
 
+      {visiblePins.length === 0 && (
+        <div className={styles.mapEmpty}>
+          <div className={styles.mapEmptyIcon}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" width="32" height="32">
+              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" />
+              <circle cx="12" cy="9" r="2.5" />
+              <line x1="4" y1="4" x2="20" y2="20" strokeWidth="1.5" />
+            </svg>
+          </div>
+          <div className={styles.mapEmptyText}>Tidak ada pin yang ditampilkan</div>
+          <div className={styles.mapEmptyHint}>
+            Pastikan layer aktif · Data GPS harus tersedia dari backend
+          </div>
+        </div>
+      )}
+
       <div className={styles.mapLegend}>
         <div className={styles.legendRow}>
           <div className={styles.legendDot} style={{ background: 'var(--red)' }} />

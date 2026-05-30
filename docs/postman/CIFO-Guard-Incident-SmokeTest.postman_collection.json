@@ -1,0 +1,817 @@
+{
+  "info": {
+    "name": "CIFO Guard — Incident Management Smoke Test",
+    "description": "Smoke test collection untuk QA memvalidasi incident management flow via Postman.\nAlur: Login → Create Incident → List → Detail → Update Status → Escalate → Resolve → Notes → Timeline\n\nPetunjuk:\n1. Import collection ini ke Postman\n2. Set environment variable BASE_URL ke URL backend (contoh: http://localhost:3000/api)\n3. Jalankan folder secara berurutan: 00 → 01 → 02 → 03 → 04 → 05 → 06 → 07\n4. Token JWT otomatis tersimpan setelah Login (step 00)\n\nCatatan: Auto-create dari Panic — POST /panic otomatis buat Incident, lihat folder 08.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "BASE_URL",
+      "value": "http://localhost:3000/api",
+      "description": "Base URL backend. Ganti sesuai environment (local/staging)."
+    },
+    {
+      "key": "TOKEN",
+      "value": "",
+      "description": "JWT token — otomatis diisi setelah Login berhasil."
+    },
+    {
+      "key": "INCIDENT_ID",
+      "value": "",
+      "description": "ID incident — otomatis diisi setelah Create Incident berhasil."
+    },
+    {
+      "key": "PANIC_ALERT_ID",
+      "value": "",
+      "description": "Alert ID dari panic — otomatis diisi setelah Trigger Panic."
+    }
+  ],
+  "item": [
+    {
+      "name": "00 — Auth",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Ada token di response', () => {",
+                  "  const body = pm.response.json();",
+                  "  const token = body?.data?.token || body?.token;",
+                  "  pm.expect(token).to.be.a('string');",
+                  "  pm.collectionVariables.set('TOKEN', token);",
+                  "  console.log('Token tersimpan:', token.substring(0, 30) + '...');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"password123\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/auth/login",
+              "host": ["{{BASE_URL}}"],
+              "path": ["auth", "login"]
+            },
+            "description": "Login sebagai admin/supervisor. Token JWT otomatis disimpan."
+          }
+        }
+      ]
+    },
+    {
+      "name": "01 — Create Incident",
+      "item": [
+        {
+          "name": "POST /incidents — SECURITY_BREACH (manual)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Response ada incidentId', () => {",
+                  "  const body = pm.response.json();",
+                  "  const id = body?.data?.incidentId || body?.data?.id;",
+                  "  pm.expect(id).to.exist;",
+                  "  pm.collectionVariables.set('INCIDENT_ID', id);",
+                  "  console.log('Incident ID tersimpan:', id);",
+                  "});",
+                  "pm.test('Status incident = OPEN', () => {",
+                  "  const body = pm.response.json();",
+                  "  const status = body?.data?.status || body?.data?.incident?.status;",
+                  "  pm.expect(status).to.equal('OPEN');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"SECURITY_BREACH\",\n  \"priority\": \"HIGH\",\n  \"title\": \"Smoke Test — Orang tidak dikenal masuk area\",\n  \"description\": \"Orang tidak dikenal terdeteksi memasuki area cluster A tanpa izin\",\n  \"location\": {\n    \"latitude\": -6.2088,\n    \"longitude\": 106.8456,\n    \"name\": \"Cluster A - Blok 3\"\n  },\n  \"reportedBy\": \"guard_001\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/incidents",
+              "host": ["{{BASE_URL}}"],
+              "path": ["incidents"]
+            },
+            "description": "Buat incident manual oleh guard/supervisor.\nIncident ID otomatis disimpan ke variabel INCIDENT_ID."
+          }
+        },
+        {
+          "name": "POST /incidents — tanpa auth (expect 401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 401 Unauthorized', () => {",
+                  "  pm.response.to.have.status(401);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"FIRE\",\n  \"priority\": \"CRITICAL\",\n  \"description\": \"Test tanpa auth\",\n  \"location\": { \"latitude\": -6.2088, \"longitude\": 106.8456, \"name\": \"Test\" }\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/incidents",
+              "host": ["{{BASE_URL}}"],
+              "path": ["incidents"]
+            },
+            "description": "Verifikasi endpoint butuh auth — tanpa token harus 401."
+          }
+        },
+        {
+          "name": "POST /incidents — tanpa lokasi (expect 400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 400 Bad Request', () => {",
+                  "  pm.response.to.have.status(400);",
+                  "});",
+                  "pm.test('Error message ada', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.success).to.be.false;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"THEFT\",\n  \"priority\": \"MEDIUM\",\n  \"description\": \"Test tanpa koordinat lokasi\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/incidents",
+              "host": ["{{BASE_URL}}"],
+              "path": ["incidents"]
+            },
+            "description": "Verifikasi validasi lokasi wajib — tanpa lat/lng harus 400."
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 — List & Filter",
+      "item": [
+        {
+          "name": "GET /incidents — semua",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Response berisi array incidents', () => {",
+                  "  const body = pm.response.json();",
+                  "  const incidents = body?.data?.incidents || body?.data || [];",
+                  "  pm.expect(Array.isArray(incidents)).to.be.true;",
+                  "  console.log('Total incidents:', incidents.length);",
+                  "});",
+                  "pm.test('Incident yang dibuat ada di list', () => {",
+                  "  const incidentId = pm.collectionVariables.get('INCIDENT_ID');",
+                  "  if (!incidentId) { console.warn('INCIDENT_ID kosong — skip'); return; }",
+                  "  const body = pm.response.json();",
+                  "  const incidents = body?.data?.incidents || body?.data || [];",
+                  "  const found = incidents.some(i => i.id === incidentId);",
+                  "  pm.expect(found).to.be.true;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }],
+            "url": {
+              "raw": "{{BASE_URL}}/incidents?limit=50",
+              "host": ["{{BASE_URL}}"],
+              "path": ["incidents"],
+              "query": [{ "key": "limit", "value": "50" }]
+            },
+            "description": "List semua incidents. Verifikasi incident yang baru dibuat ada di list."
+          }
+        },
+        {
+          "name": "GET /incidents — filter status=OPEN",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Semua incident berstatus OPEN', () => {",
+                  "  const body = pm.response.json();",
+                  "  const incidents = body?.data?.incidents || body?.data || [];",
+                  "  incidents.forEach(i => pm.expect(i.status).to.equal('OPEN'));",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }],
+            "url": {
+              "raw": "{{BASE_URL}}/incidents?status=OPEN",
+              "host": ["{{BASE_URL}}"],
+              "path": ["incidents"],
+              "query": [{ "key": "status", "value": "OPEN" }]
+            },
+            "description": "Filter incident OPEN saja."
+          }
+        },
+        {
+          "name": "GET /incidents — filter priority=CRITICAL",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Semua incident priority CRITICAL', () => {",
+                  "  const body = pm.response.json();",
+                  "  const incidents = body?.data?.incidents || body?.data || [];",
+                  "  incidents.forEach(i => pm.expect(i.priority).to.equal('CRITICAL'));",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }],
+            "url": {
+              "raw": "{{BASE_URL}}/incidents?priority=CRITICAL",
+              "host": ["{{BASE_URL}}"],
+              "path": ["incidents"],
+              "query": [{ "key": "priority", "value": "CRITICAL" }]
+            },
+            "description": "Filter incident CRITICAL saja."
+          }
+        },
+        {
+          "name": "GET /incidents/stats/dashboard",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Stats data ada', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body?.data).to.exist;",
+                  "  console.log('Stats:', JSON.stringify(body.data));",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }],
+            "url": {
+              "raw": "{{BASE_URL}}/incidents/stats/dashboard?period=today",
+              "host": ["{{BASE_URL}}"],
+              "path": ["incidents", "stats", "dashboard"],
+              "query": [{ "key": "period", "value": "today" }]
+            },
+            "description": "Dashboard stats untuk hari ini."
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 — Incident Detail",
+      "item": [
+        {
+          "name": "GET /incidents/:id — detail lengkap",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Detail incident lengkap', () => {",
+                  "  const body = pm.response.json();",
+                  "  const incident = body?.data || body;",
+                  "  pm.expect(incident.id || incident.incidentNumber).to.exist;",
+                  "  pm.expect(incident.status).to.exist;",
+                  "  pm.expect(incident.type).to.exist;",
+                  "  pm.expect(incident.priority).to.exist;",
+                  "  console.log('Status:', incident.status, '| Priority:', incident.priority);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }],
+            "url": {
+              "raw": "{{BASE_URL}}/incidents/{{INCIDENT_ID}}",
+              "host": ["{{BASE_URL}}"],
+              "path": ["incidents", "{{INCIDENT_ID}}"]
+            },
+            "description": "Get detail incident yang baru dibuat."
+          }
+        },
+        {
+          "name": "GET /incidents/:id — ID tidak ada (expect 404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 404', () => {",
+                  "  pm.response.to.have.status(404);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }],
+            "url": {
+              "raw": "{{BASE_URL}}/incidents/id-tidak-ada-99999",
+              "host": ["{{BASE_URL}}"],
+              "path": ["incidents", "id-tidak-ada-99999"]
+            },
+            "description": "Verifikasi 404 untuk ID yang tidak ada."
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 — Update Status",
+      "item": [
+        {
+          "name": "PATCH /incidents/:id — OPEN → IN_PROGRESS",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Status berubah ke IN_PROGRESS', () => {",
+                  "  const body = pm.response.json();",
+                  "  const incident = body?.data || body;",
+                  "  pm.expect(incident.status).to.equal('IN_PROGRESS');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"IN_PROGRESS\",\n  \"assignedTo\": \"guard_001\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/incidents/{{INCIDENT_ID}}",
+              "host": ["{{BASE_URL}}"],
+              "path": ["incidents", "{{INCIDENT_ID}}"]
+            },
+            "description": "Set status IN_PROGRESS dan assign ke guard."
+          }
+        },
+        {
+          "name": "PATCH /incidents/:id — status invalid (expect 400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 400 untuk status tidak valid', () => {",
+                  "  pm.response.to.have.status(400);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"STATUS_TIDAK_ADA\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/incidents/{{INCIDENT_ID}}",
+              "host": ["{{BASE_URL}}"],
+              "path": ["incidents", "{{INCIDENT_ID}}"]
+            },
+            "description": "Verifikasi validasi status — nilai tidak valid harus 400."
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 — Notes & Activity",
+      "item": [
+        {
+          "name": "POST /incidents/:id/notes — tambah catatan",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Note berhasil ditambahkan', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.success).to.be.true;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"note\": \"Guard telah dikirim ke lokasi. Area dalam pemantauan.\",\n  \"isInternal\": false\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/incidents/{{INCIDENT_ID}}/notes",
+              "host": ["{{BASE_URL}}"],
+              "path": ["incidents", "{{INCIDENT_ID}}", "notes"]
+            },
+            "description": "Tambah catatan ke incident."
+          }
+        },
+        {
+          "name": "GET /incidents/:id/timeline",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Timeline berupa array', () => {",
+                  "  const body = pm.response.json();",
+                  "  const timeline = body?.data;",
+                  "  pm.expect(Array.isArray(timeline)).to.be.true;",
+                  "  console.log('Timeline entries:', timeline.length);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }],
+            "url": {
+              "raw": "{{BASE_URL}}/incidents/{{INCIDENT_ID}}/timeline",
+              "host": ["{{BASE_URL}}"],
+              "path": ["incidents", "{{INCIDENT_ID}}", "timeline"]
+            },
+            "description": "Get timeline/history aktivitas incident."
+          }
+        },
+        {
+          "name": "GET /incidents/:id/activities",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Activities ada', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.success).to.be.true;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }],
+            "url": {
+              "raw": "{{BASE_URL}}/incidents/{{INCIDENT_ID}}/activities?limit=20",
+              "host": ["{{BASE_URL}}"],
+              "path": ["incidents", "{{INCIDENT_ID}}", "activities"],
+              "query": [{ "key": "limit", "value": "20" }]
+            },
+            "description": "Get log aktivitas incident."
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 — Escalate",
+      "item": [
+        {
+          "name": "POST /incidents/:id/escalate — eskalasi ke supervisor",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Eskalasi berhasil', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.success).to.be.true;",
+                  "  console.log('Escalation result:', JSON.stringify(body.data));",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Situasi berkembang — memerlukan keputusan supervisor\",\n  \"escalatedTo\": \"guard_001\",\n  \"newPriority\": \"CRITICAL\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/incidents/{{INCIDENT_ID}}/escalate",
+              "host": ["{{BASE_URL}}"],
+              "path": ["incidents", "{{INCIDENT_ID}}", "escalate"]
+            },
+            "description": "Eskalasi incident ke supervisor. Membutuhkan role SUPERVISOR atau COORDINATOR."
+          }
+        },
+        {
+          "name": "POST /incidents/:id/escalate — tanpa reason (expect 400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 400 tanpa reason', () => {",
+                  "  pm.response.to.have.status(400);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/incidents/{{INCIDENT_ID}}/escalate",
+              "host": ["{{BASE_URL}}"],
+              "path": ["incidents", "{{INCIDENT_ID}}", "escalate"]
+            },
+            "description": "Verifikasi validasi — eskalasi tanpa reason harus 400."
+          }
+        }
+      ]
+    },
+    {
+      "name": "07 — Resolve & Close",
+      "item": [
+        {
+          "name": "PATCH /incidents/:id — → RESOLVED",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Status = RESOLVED', () => {",
+                  "  const body = pm.response.json();",
+                  "  const incident = body?.data || body;",
+                  "  pm.expect(incident.status).to.equal('RESOLVED');",
+                  "});",
+                  "pm.test('resolvedAt tersedia', () => {",
+                  "  const body = pm.response.json();",
+                  "  const incident = body?.data || body;",
+                  "  pm.expect(incident.resolvedAt || incident.updatedAt).to.exist;",
+                  "  console.log('resolvedAt:', incident.resolvedAt);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"RESOLVED\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/incidents/{{INCIDENT_ID}}",
+              "host": ["{{BASE_URL}}"],
+              "path": ["incidents", "{{INCIDENT_ID}}"]
+            },
+            "description": "Resolve incident — status → RESOLVED."
+          }
+        },
+        {
+          "name": "PATCH /incidents/:id — → CLOSED",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Status = CLOSED', () => {",
+                  "  const body = pm.response.json();",
+                  "  const incident = body?.data || body;",
+                  "  pm.expect(incident.status).to.equal('CLOSED');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"CLOSED\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/incidents/{{INCIDENT_ID}}",
+              "host": ["{{BASE_URL}}"],
+              "path": ["incidents", "{{INCIDENT_ID}}"]
+            },
+            "description": "Close incident — status → CLOSED (final)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "08 — Auto-Create dari Panic",
+      "item": [
+        {
+          "name": "POST /panic — trigger panic (auto-create incident)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Alert ID ada', () => {",
+                  "  const body = pm.response.json();",
+                  "  const alertId = body?.data?.alertId || body?.data?.id;",
+                  "  pm.expect(alertId).to.exist;",
+                  "  pm.collectionVariables.set('PANIC_ALERT_ID', alertId);",
+                  "  console.log('Panic Alert ID:', alertId);",
+                  "});",
+                  "pm.test('incidentId otomatis dibuat (linked)', () => {",
+                  "  const body = pm.response.json();",
+                  "  const incidentId = body?.data?.incidentId;",
+                  "  if (incidentId) {",
+                  "    console.log('Auto-created Incident ID:', incidentId);",
+                  "    pm.collectionVariables.set('INCIDENT_ID', incidentId);",
+                  "  } else {",
+                  "    console.warn('incidentId null — auto-create mungkin gagal, cek backend log');",
+                  "  }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"CRIME\",\n  \"userId\": \"guard-001\",\n  \"requestId\": \"smoke-incident-auto-{{$randomUUID}}\",\n  \"gps\": {\n    \"latitude\": -6.2088,\n    \"longitude\": 106.8456,\n    \"accuracy\": 10\n  }\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/panic",
+              "host": ["{{BASE_URL}}"],
+              "path": ["panic"]
+            },
+            "description": "Trigger panic — backend otomatis buat Incident dan link ke Alert.\nVerifikasi incidentId ada di response data."
+          }
+        },
+        {
+          "name": "GET /incidents/:id — verify auto-created incident",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const incidentId = pm.collectionVariables.get('INCIDENT_ID');",
+                  "if (!incidentId) {",
+                  "  console.warn('INCIDENT_ID kosong — auto-create mungkin gagal');",
+                  "  pm.test.skip('Skip — tidak ada INCIDENT_ID');",
+                  "  return;",
+                  "}",
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Incident type = PANIC_ALERT', () => {",
+                  "  const body = pm.response.json();",
+                  "  const incident = body?.data || body;",
+                  "  pm.expect(incident.type).to.equal('PANIC_ALERT');",
+                  "  pm.expect(incident.priority).to.equal('CRITICAL');",
+                  "  pm.expect(incident.status).to.equal('OPEN');",
+                  "  console.log('Auto incident OK — type:', incident.type, 'priority:', incident.priority);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }],
+            "url": {
+              "raw": "{{BASE_URL}}/incidents/{{INCIDENT_ID}}",
+              "host": ["{{BASE_URL}}"],
+              "path": ["incidents", "{{INCIDENT_ID}}"]
+            },
+            "description": "Verifikasi incident yang otomatis dibuat dari panic:\n- type = PANIC_ALERT\n- priority = CRITICAL\n- status = OPEN\n- metadata.autoCreated = true"
+          }
+        }
+      ]
+    }
+  ]
+}

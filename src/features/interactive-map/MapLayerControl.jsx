@@ -23,7 +23,7 @@ export function MapLayerControl({ layers, onToggle, counts }) {
               style={{ background: l.color }}
             />
             <span>{l.label}</span>
-            <span className={styles.layerCount}>{counts[l.key] ?? 0}</span>
+            <span className={`${styles.layerCount} ${(counts[l.key] ?? 0) === 0 ? styles.layerCountZero : ''}`}>{counts[l.key] ?? 0}</span>
           </div>
         ))}
       </div>

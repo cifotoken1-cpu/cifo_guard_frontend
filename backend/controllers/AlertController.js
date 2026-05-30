@@ -977,11 +977,18 @@ class AlertController {
         requestId,
         userId,
         type = 'EMERGENCY',
-        gps,
+        gps: rawGps,
         metadata = {},
         accuracy,
         timestamp
       } = req.body;
+
+      // Normalize GPS: accept both {lat,lng} and {latitude,longitude}
+      const gps = rawGps ? {
+        lat: rawGps.lat ?? rawGps.latitude,
+        lng: rawGps.lng ?? rawGps.longitude,
+        accuracy: rawGps.accuracy
+      } : null;
 
       // Validate required fields
       if (!requestId || !userId) {
@@ -1080,6 +1087,39 @@ class AlertController {
       // Broadcast alert immediately
       await broadcastAlert(alert);
 
+      // Auto-create linked Incident for formal case tracking
+      let incident = null;
+      try {
+        const now = Date.now();
+        const incidentLocation = gps
+          ? { latitude: gps.lat, longitude: gps.lng }
+          : { latitude: 0, longitude: 0 };
+
+        incident = await Incident.create({
+          id: `INC_${now}_${Math.random().toString(36).substr(2, 9)}`,
+          incidentNumber: `INC-${new Date().getFullYear()}-${String(now).slice(-6)}`,
+          type: 'PANIC_ALERT',
+          priority: 'CRITICAL',
+          status: 'OPEN',
+          title: `[AUTO] Panic Alert - ${type} dari ${userId}`,
+          description: `Panic alert otomatis dibuat dari panic button. Alert ID: ${alert.alertId}. User: ${userId}. Tipe: ${type}.`,
+          location: incidentLocation,
+          reportedBy: userId,
+          metadata: {
+            sourceAlertId: alert.id,
+            sourceAlertAlertId: alert.alertId,
+            panicType: type,
+            gps,
+            autoCreated: true
+          }
+        });
+
+        // Link alert → incident
+        await alert.update({ incidentId: incident.id });
+      } catch (incidentErr) {
+        console.error('[AlertController] Auto-create incident failed (non-fatal):', incidentErr.message);
+      }
+
       res.status(201).json({
         success: true,
         message: 'Panic alert created successfully',
@@ -1088,7 +1128,8 @@ class AlertController {
           alertId: alert.alertId,
           requestId,
           status: 'ACTIVE',
-          timestamp: alert.createdAt
+          timestamp: alert.createdAt,
+          incidentId: incident?.id || null
         }
       });
     } catch (error) {
