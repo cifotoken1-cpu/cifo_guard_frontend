@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { I } from '../../icons';
-import { useCountingSummary, useDurationSummary } from '../../hooks/useGateCount';
+import { useCountingSummary, useDurationSummary, useDailyReport } from '../../hooks/useGateCount';
+import { reportsApi } from '../../api/counting.api';
 import styles from './CountingDashboardView.module.css';
 
 function formatDuration(seconds) {
@@ -15,8 +16,10 @@ function formatDuration(seconds) {
 
 export function CountingDashboardView() {
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [showReport, setShowReport] = useState(false);
   const { data, isLoading, isError } = useCountingSummary(date);
   const { data: durationData } = useDurationSummary(date);
+  const { data: reportData, isLoading: reportLoading } = useDailyReport(showReport ? date : null);
 
   const summary = data?.data ?? [];
   const totals = data?.totals ?? { in: 0, out: 0, inside: 0 };
@@ -27,16 +30,33 @@ export function CountingDashboardView() {
   }
   const overall = durationData?.overall ?? {};
 
+  const narrative = reportData?.data?.narrative;
+
   return (
     <div className={styles.container}>
       <div className={styles.header}>
         <div className={styles.title}>Visitor Counting</div>
-        <input
-          type="date"
-          className={styles.dateInput}
-          value={date}
-          onChange={(e) => setDate(e.target.value)}
-        />
+        <div className={styles.headerActions}>
+          <button
+            className={styles.actionBtn}
+            onClick={() => setShowReport(!showReport)}
+          >
+            {I.clipboard} {showReport ? 'Tutup Laporan' : 'Laporan AI'}
+          </button>
+          <a
+            className={styles.actionBtn}
+            href={reportsApi.getExportCSVUrl(date)}
+            download
+          >
+            {I.download} Export CSV
+          </a>
+          <input
+            type="date"
+            className={styles.dateInput}
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+          />
+        </div>
       </div>
 
       <div className={styles.totals}>
@@ -59,6 +79,22 @@ export function CountingDashboardView() {
           <div className={styles.totalLabel}>Rata-rata Durasi</div>
         </div>
       </div>
+
+      {showReport && (
+        <div className={styles.reportCard}>
+          <div className={styles.reportHeader}>Ringkasan Harian AI</div>
+          {reportLoading && <div className={styles.loading}>Generating report...</div>}
+          {narrative && <div className={styles.reportBody}>{narrative}</div>}
+          {!reportLoading && !narrative && reportData?.data?.ai_unavailable && (
+            <div className={styles.reportBody}>
+              OpenRouter API key belum dikonfigurasi. Set OPENROUTER_API_KEY di .env backend.
+            </div>
+          )}
+          {!reportLoading && !narrative && !reportData?.data?.ai_unavailable && (
+            <div className={styles.reportBody}>Belum ada data untuk generate laporan.</div>
+          )}
+        </div>
+      )}
 
       {isLoading && <div className={styles.loading}>Memuat data...</div>}
 

@@ -14,3 +14,12 @@ export const visitsApi = {
   getCameraVisits: (cameraId, date, status) =>
     api.get(`/visits/cameras/${cameraId}`, { params: { date, status } }).then((r) => r.data),
 };
+
+export const reportsApi = {
+  getDailySummary: (date) =>
+    api.get('/reports/daily-summary', { params: { date } }).then((r) => r.data),
+  getExportCSVUrl: (date) => {
+    const base = api.defaults.baseURL || '/api';
+    return `${base}/reports/export/csv?date=${date}`;
+  },
+};

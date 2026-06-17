@@ -33,6 +33,7 @@ const visitorRoutes = require('../routes/visitor');
 const residentialMapRoutes = require('../routes/residential-map-routes');
 const countingRoutes = require('../routes/counting-routes');
 const visitRoutes = require('../routes/visit-routes');
+const reportRoutes = require('../routes/report-routes');
 const authRoutes = require('./auth-routes');
 const userRoutes = require('./user-routes');
 
@@ -1260,6 +1261,7 @@ router.use('/visitor', visitorRoutes);
 router.use('/residential-map', residentialMapRoutes);
 router.use('/counting', countingRoutes);
 router.use('/visits', visitRoutes);
+router.use('/reports', reportRoutes);
 
 module.exports = { router, metrics };
 module.exports.default = router;

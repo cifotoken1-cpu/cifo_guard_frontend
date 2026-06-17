@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { countingApi, visitsApi } from '../api/counting.api';
+import { countingApi, visitsApi, reportsApi } from '../api/counting.api';
 import { onSocket } from '../api/socket';
 
 export function useCountingSummary(date) {
@@ -54,5 +54,14 @@ export function useDurationSummary(date) {
     queryFn: () => visitsApi.getDurationSummary(date),
     staleTime: 15_000,
     refetchInterval: 15_000,
+  });
+}
+
+export function useDailyReport(date) {
+  return useQuery({
+    queryKey: ['reports', 'daily', date],
+    queryFn: () => reportsApi.getDailySummary(date),
+    staleTime: 60_000,
+    enabled: !!date,
   });
 }

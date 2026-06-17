@@ -11,12 +11,42 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .title {
   font-size: 16px;
   font-weight: 600;
   color: var(--text-hi);
+}
+
+.actionBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 10px;
+  color: var(--text-hi);
+  font-size: 12px;
+  cursor: pointer;
+  text-decoration: none;
+}
+.actionBtn:hover {
+  border-color: var(--cyan);
+  color: var(--cyan);
+}
+.actionBtn svg {
+  width: 14px;
+  height: 14px;
 }
 
 .dateInput {
@@ -150,4 +180,38 @@
   color: var(--red);
   padding: 2rem;
   font-size: 13px;
+}
+
+/* Report card */
+.reportCard {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  padding: 14px;
+  position: relative;
+  overflow: hidden;
+}
+.reportCard::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: #a78bfa;
+  border-radius: 11px 11px 0 0;
+}
+
+.reportHeader {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-hi);
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.reportBody {
+  font-size: 13px;
+  color: var(--text-lo);
+  line-height: 1.6;
+  white-space: pre-wrap;
 }
