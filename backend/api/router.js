@@ -31,6 +31,7 @@ const featureFlagRoutes = require('../routes/feature-flag-routes');
 const mapsRoutes = require('../routes/maps-routes');
 const visitorRoutes = require('../routes/visitor');
 const residentialMapRoutes = require('../routes/residential-map-routes');
+const countingRoutes = require('../routes/counting-routes');
 const authRoutes = require('./auth-routes');
 const userRoutes = require('./user-routes');
 
@@ -1256,6 +1257,7 @@ router.use('/feature-flags', featureFlagRoutes);
 router.use('/maps', mapsRoutes);
 router.use('/visitor', visitorRoutes);
 router.use('/residential-map', residentialMapRoutes);
+router.use('/counting', countingRoutes);
 
 module.exports = { router, metrics };
 module.exports.default = router;

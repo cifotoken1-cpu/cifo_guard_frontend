@@ -468,6 +468,15 @@ class WebSocketService {
     });
   }
 
+  broadcastCountingEvent(eventData) {
+    if (this.io) {
+      this.io.to(this.rooms.MONITORING).emit('counting_event', {
+        ...eventData,
+        timestamp: new Date()
+      });
+    }
+  }
+
   // Send emergency alert
   sendEmergencyAlert(alertData) {
     const emergencyAlert = {

@@ -19,6 +19,7 @@ const QRCode = require('./QRCode');
 const SecurityActivity = require('./SecurityActivity');
 const TeamLocationHistory = require('./TeamLocationHistory');
 const TeamMember = require('./TeamMember');
+const CrossingEvent = require('./CrossingEvent');
 const VisitorRegistration = require('./VisitorRegistration');
 
 // Create models object (only Sequelize models for associations)
@@ -28,6 +29,7 @@ const sequelizeModels = {
   BasemapConfig,
   Camera,
   CameraHealthLog,
+  CrossingEvent,
   FeatureFlag,
   Geofence,
   GeofenceBreach,

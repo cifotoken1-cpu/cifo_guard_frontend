@@ -51,6 +51,7 @@ app.use((err, req, res, next) => {
 
 // Initialize WebSocket Service
 const io = WebSocketService.initialize(server);
+app.set('wsService', WebSocketService);
 
 // Legacy WebSocket connections tracking (for compatibility)
 const wsConnections = new Set();
