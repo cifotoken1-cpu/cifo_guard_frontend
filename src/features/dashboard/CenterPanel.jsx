@@ -9,6 +9,7 @@ import { IncidentResponseView } from '../incident-response/IncidentResponseView'
 import { InteractiveMapView } from '../interactive-map/InteractiveMapView';
 import { MediaView } from '../media/MediaView';
 import { UsersPage } from '../users/UsersPage';
+import { CountingDashboardView } from '../counting/CountingDashboardView';
 import { useActiveAlerts } from '../../hooks/useAlertsStream';
 import { useCameras } from '../../hooks/useCamerasStream';
 import { useSensors } from '../../hooks/useSensorsStream';
@@ -50,6 +51,12 @@ export function CenterPanel() {
     return (
       <ErrorBoundary>
         <IncidentResponseView />
+      </ErrorBoundary>
+    );
+  if (activeNav === 'counting')
+    return (
+      <ErrorBoundary>
+        <CountingDashboardView />
       </ErrorBoundary>
     );
   if (activeNav === 'map')

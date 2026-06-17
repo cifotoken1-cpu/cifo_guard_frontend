@@ -51,6 +51,7 @@ export function Sidebar() {
 
   const allNavItems = [
     { id: 'security', label: 'Security', icon: I.shield, badge: alertCount },
+    { id: 'counting', label: 'Counting', icon: I.counting, badge: 0 },
     { id: 'media', label: 'Media', icon: I.media, badge: 0 },
     { id: 'panic', label: 'Panic', icon: I.panicBell, badge: activePanicCount },
     { id: 'incidents', label: 'Insiden', icon: I.incident, badge: openIncidentCount },
