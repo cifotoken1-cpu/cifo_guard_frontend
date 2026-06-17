@@ -35,7 +35,7 @@
 /* Totals row */
 .totals {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 8px;
 }
 
@@ -60,6 +60,7 @@
 .totalIn::before { background: var(--green); }
 .totalOut::before { background: var(--amber); }
 .totalInside::before { background: var(--cyan); }
+.totalDuration::before { background: #a78bfa; }
 
 .totalNum {
   font-family: var(--font-mono);
@@ -70,6 +71,7 @@
 .numIn { color: var(--green); }
 .numOut { color: var(--amber); }
 .numInside { color: var(--cyan); }
+.numDuration { color: #a78bfa; }
 
 .totalLabel {
   font-size: 10px;

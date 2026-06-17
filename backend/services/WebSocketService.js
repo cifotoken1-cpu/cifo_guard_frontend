@@ -477,6 +477,15 @@ class WebSocketService {
     }
   }
 
+  broadcastVisitEvent(eventData) {
+    if (this.io) {
+      this.io.to(this.rooms.MONITORING).emit('visit_event', {
+        ...eventData,
+        timestamp: new Date()
+      });
+    }
+  }
+
   // Send emergency alert
   sendEmergencyAlert(alertData) {
     const emergencyAlert = {
