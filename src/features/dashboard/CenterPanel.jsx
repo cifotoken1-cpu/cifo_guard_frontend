@@ -1,4 +1,6 @@
+import { useEffect } from 'react';
 import { I } from '../../icons';
+import { PRODUCT } from '../../config/product';
 import { useSystemStore } from '../../store/system.store';
 import { useUIStore } from '../../store/ui.store';
 import { ErrorBoundary } from '../../components/ErrorBoundary';
@@ -23,6 +25,7 @@ const MODES = [
 
 export function CenterPanel() {
   const activeNav = useSystemStore((s) => s.activeNav);
+  const setActiveNav = useSystemStore((s) => s.setActiveNav);
   const openModal = useUIStore((s) => s.openModal);
   const sectionVisibility = useUIStore((s) => s.sectionVisibility);
   const time = useClock();
@@ -32,7 +35,11 @@ export function CenterPanel() {
   const { data: sensorsData } = useSensors();
   const { data: activities } = useRecentActivities(20);
 
-  // New dedicated views for panic, incidents, map, and media
+  const isHiddenNav = PRODUCT.hiddenNavIds.includes(activeNav);
+  useEffect(() => {
+    if (isHiddenNav) setActiveNav('security');
+  }, [isHiddenNav, setActiveNav]);
+
   if (activeNav === 'panic')
     return (
       <ErrorBoundary>

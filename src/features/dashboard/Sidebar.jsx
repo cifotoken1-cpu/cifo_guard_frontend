@@ -13,6 +13,7 @@ import { authApi } from '../../api/auth.api';
 import { pad, formatDate } from '../../utils/format';
 import { SidebarPanelsControl } from './SidebarPanelsControl';
 import { ChangePasswordModal } from '../auth/ChangePasswordModal';
+import { PRODUCT } from '../../config/product';
 import styles from './Sidebar.module.css';
 
 export function Sidebar() {
@@ -48,7 +49,7 @@ export function Sidebar() {
     },
   });
 
-  const navItems = [
+  const allNavItems = [
     { id: 'security', label: 'Security', icon: I.shield, badge: alertCount },
     { id: 'media', label: 'Media', icon: I.media, badge: 0 },
     { id: 'panic', label: 'Panic', icon: I.panicBell, badge: activePanicCount },
@@ -56,6 +57,8 @@ export function Sidebar() {
     { id: 'map', label: 'Peta', icon: I.map, badge: 0 },
     ...(isAdmin ? [{ id: 'users', label: 'Users', icon: I.users, badge: 0 }] : []),
   ];
+
+  const navItems = allNavItems.filter((item) => !PRODUCT.hiddenNavIds.includes(item.id));
 
   const cpu = metrics?.cpu ?? 28;
   const mem = metrics?.memory ?? 43;

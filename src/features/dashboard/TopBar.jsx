@@ -1,4 +1,5 @@
 import { I } from '../../icons';
+import { PRODUCT } from '../../config/product';
 import { useUIStore } from '../../store/ui.store';
 import { useAlertStats } from '../../hooks/useAlertsStream';
 import { useCameras } from '../../hooks/useCamerasStream';
@@ -25,10 +26,10 @@ export function TopBar() {
       <div className={styles.brand}>
         <div className={styles.brandIcon}>
           <span style={{ width: 16, height: 16, color: 'rgba(99,179,237,0.9)' }}>
-            {I.shield}
+            {PRODUCT.icon}
           </span>
         </div>
-        CIFO GUARD
+        {PRODUCT.title}
       </div>
 
       <div className={styles.stats}>

@@ -4,6 +4,7 @@ import { useMutation } from '@tanstack/react-query';
 import { authApi } from '../../api/auth.api';
 import { useAuthStore } from '../../store/auth.store';
 import { I } from '../../icons';
+import { PRODUCT } from '../../config/product';
 import styles from './LoginPage.module.css';
 
 export function LoginPage() {
@@ -46,10 +47,10 @@ export function LoginPage() {
 
       <div className={styles.card}>
         <div className={styles.brand}>
-          <span className={styles.brandIcon}>{I.shield}</span>
+          <span className={styles.brandIcon}>{PRODUCT.icon}</span>
           <div>
-            <div className={styles.brandName}>CIFO GUARD</div>
-            <div className={styles.brandSub}>Security Command Center</div>
+            <div className={styles.brandName}>{PRODUCT.name}</div>
+            <div className={styles.brandSub}>{PRODUCT.subtitle}</div>
           </div>
         </div>
 
@@ -93,7 +94,7 @@ export function LoginPage() {
         </form>
 
         <div className={styles.footer}>
-          CIFO Security System &nbsp;·&nbsp; Authorized Access Only
+          {PRODUCT.footer}
         </div>
       </div>
     </div>
