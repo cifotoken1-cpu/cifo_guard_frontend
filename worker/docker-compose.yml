@@ -1,0 +1,20 @@
+services:
+  cctv-worker:
+    build: .
+    image: cctv-ai-count-worker
+    env_file: .env
+    restart: unless-stopped
+    network_mode: host       # simplest for RTSP + localhost backend access
+    healthcheck:
+      test: ["CMD", "python", "-c", "from api_client import health_check; exit(0 if health_check() else 1)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    volumes:
+      - ./logs:/app/logs     # optional: mount logs dir for persistence
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
