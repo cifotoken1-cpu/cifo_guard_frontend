@@ -349,7 +349,7 @@ router.patch('/alerts/:id', trackLatency, async (req, res) => {
 /**
  * GET /alerts/:id/activity - Get activity log for specific alert
  */
-router.get('/alerts/:id/activity', trackLatency, (req, res) => {
+router.get('/alerts/:id/activity', trackLatency, async (req, res) => {
   try {
     const { id } = req.params;
     
@@ -362,36 +362,19 @@ router.get('/alerts/:id/activity', trackLatency, (req, res) => {
       });
     }
 
-    // Mock activities data for now - in real implementation this would come from database
-    const mockActivities = [
-      {
-        id: 'act_001',
-        type: 'ALERT_ACKNOWLEDGED',
-        actor: 'Ahmad Wijaya',
-        ts: new Date(Date.now() - 10 * 60 * 1000).toISOString(), // 10 minutes ago
-        note: 'Alert acknowledged by security team',
-        severity: 'INFO'
-      },
-      {
-        id: 'act_002', 
-        type: 'ALERT_RESPONSE',
-        actor: 'Budi Santoso',
-        ts: new Date(Date.now() - 5 * 60 * 1000).toISOString(), // 5 minutes ago
-        note: 'Security team dispatched to location',
-        severity: 'INFO'
-      }
-    ];
-    
-    // Sort by timestamp (newest first)
-    const sortedActivities = mockActivities.sort((a, b) => new Date(b.ts) - new Date(a.ts));
+    // Query real activities from database by alert reference ID
+    const ActivityController = require('../controllers/ActivityController');
+    const activities = await ActivityController.getActivitiesByRefIdDirect(id, {
+      limit: parseInt(req.query.limit) || 50
+    });
 
     const latency = updateLatencyMetrics(req);
 
     res.json({
       success: true,
-      data: sortedActivities,
+      data: activities,
       alertId: id,
-      total: sortedActivities.length
+      total: activities.length
     });
   } catch (error) {
     const latency = updateLatencyMetrics(req);
@@ -436,12 +419,10 @@ router.get('/metrics', (req, res) => {
   }
 });
 
-// Camera heartbeat storage (in-memory for demo)
+// Camera heartbeat runtime state (in-memory cache, enriches DB camera data with live status)
 const cameraHeartbeats = new Map();
 
-// NOTE: Konstanta CCTV_CAMERAS hardcoded (18 kamera) dihapus pada migrasi DB-backed.
-// Sumber kamera sekarang dari Camera.getAll() di model. Lihat #10 di GitHub +
-// docs/INTEGRATION_STATUS.md row #1.
+
 
 
 /**
@@ -453,7 +434,7 @@ router.get('/cameras', trackLatency, async (req, res) => {
     const now = Date.now();
     const HEARTBEAT_TIMEOUT = 60000; // 1 minute timeout
 
-    // Source kamera dari DB (sebelumnya dari konstanta CCTV_CAMERAS hardcoded).
+    // Get all cameras from database
     const dbCameras = await Camera.getAll();
 
     // Enrich camera data with heartbeat status
@@ -539,7 +520,7 @@ router.post('/cameras/:id/heartbeat', trackLatency, async (req, res) => {
       lastCheck
     } = req.body;
 
-    // Validate camera ID via DB lookup (sebelumnya pakai CCTV_CAMERAS.find).
+    // Validate camera exists in database
     const camera = await Camera.getById(cameraId);
     if (!camera) {
       metrics.requests.total++;
@@ -592,8 +573,7 @@ router.post('/cameras/:id/heartbeat', trackLatency, async (req, res) => {
     
     cameraHeartbeats.set(cameraId, heartbeatData);
     
-    // Log heartbeat for monitoring
-    console.log(`[Heartbeat] Camera ${cameraId}: ${status} (${responseTime}ms, score: ${healthScore})`);
+    // Heartbeat log suppressed — too noisy
     
     // Update metrics
     metrics.requests.total++;
@@ -843,117 +823,6 @@ async function checkDuplicateIncident(incident) {
 //   }
 // });
 
-// Team roster mock data
-const TEAM_ROSTER = [
-  {
-    id: 'guard_001',
-    nama: 'Ahmad Wijaya',
-    status: 'ON_DUTY',
-    lastUpdate: new Date().toISOString(),
-    phone: '+62812345001',
-    role: 'Security Guard',
-    location: 'Main Gate'
-  },
-  {
-    id: 'guard_002', 
-    nama: 'Budi Santoso',
-    status: 'PATROLLING',
-    lastUpdate: new Date(Date.now() - 15 * 60 * 1000).toISOString(), // 15 minutes ago
-    phone: '+62812345002',
-    role: 'Patrol Officer',
-    location: 'Building A'
-  },
-  {
-    id: 'guard_003',
-    nama: 'Citra Dewi',
-    status: 'OFF_DUTY',
-    lastUpdate: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago
-    phone: '+62812345003',
-    role: 'Supervisor',
-    location: 'Control Room'
-  },
-  {
-    id: 'guard_004',
-    nama: 'Dedi Kurniawan',
-    status: 'BREAK',
-    lastUpdate: new Date(Date.now() - 30 * 60 * 1000).toISOString(), // 30 minutes ago
-    phone: '+62812345004',
-    role: 'Security Guard',
-    location: 'Parking Area'
-  },
-  {
-    id: 'guard_005',
-    nama: 'Eka Pratama',
-    status: 'ON_DUTY',
-    lastUpdate: new Date(Date.now() - 5 * 60 * 1000).toISOString(), // 5 minutes ago
-    phone: '+62812345005',
-    role: 'Security Guard',
-    location: 'Building B'
-  }
-];
-
-/**
- * GET /team - Retrieve team roster
- * Query parameters:
- * - status: Filter by status (ON_DUTY, OFF_DUTY, PATROLLING, BREAK)
- * - role: Filter by role
- */
-router.get('/team', trackLatency, (req, res) => {
-  const startTime = Date.now();
-  
-  try {
-    metrics.requests.total++;
-    
-    const { status, role } = req.query;
-    let filteredTeam = [...TEAM_ROSTER];
-    
-    // Filter by status if provided
-    if (status) {
-      const validStatuses = ['ON_DUTY', 'OFF_DUTY', 'PATROLLING', 'BREAK'];
-      if (!validStatuses.includes(status.toUpperCase())) {
-        metrics.requests.failed++;
-        return res.status(400).json({
-          success: false,
-          error: 'Invalid status filter',
-          validStatuses
-        });
-      }
-      filteredTeam = filteredTeam.filter(member => member.status === status.toUpperCase());
-    }
-    
-    // Filter by role if provided
-    if (role) {
-      filteredTeam = filteredTeam.filter(member => 
-        member.role.toLowerCase().includes(role.toLowerCase())
-      );
-    }
-    
-    // Update latency metrics
-    updateLatencyMetrics(req);
-    metrics.requests.successful++;
-    
-    res.json({
-      success: true,
-      data: {
-        team: filteredTeam,
-        total: filteredTeam.length,
-        filters: { status, role },
-        timestamp: new Date().toISOString()
-      }
-    });
-    
-  } catch (error) {
-    metrics.requests.failed++;
-    console.error('Error fetching team roster:', error);
-    
-    res.status(500).json({
-      success: false,
-      error: 'Internal server error',
-      message: error.message
-    });
-  }
-});
-
 // Camera Routes
 router.get('/api/cameras', CameraController.getAllCameras);
 router.get('/api/cameras/stats', CameraController.getStats);
@@ -969,7 +838,7 @@ router.delete('/api/cameras/:id', CameraController.deleteCamera);
 router.post('/api/cameras/:id/heartbeat', CameraController.heartbeat);
 router.get('/api/cameras/:id/health-logs', CameraController.getCameraHealthLogs);
 
-// Team Routes
+// Team Routes — DB-backed via TeamController
 router.get('/api/team', TeamController.getAllTeamMembers);
 router.get('/api/team/stats', TeamController.getStats);
 router.get('/api/team/on-duty', TeamController.getMembersOnDuty);
@@ -986,50 +855,9 @@ router.get('/api/team/locations/current', TeamController.getCurrentLocations);
 router.get('/api/team/patrol/routes', TeamController.getPatrolRoutes);
 router.get('/api/team/activity/summary', TeamController.getActivitySummary);
 
-// Security Team Status endpoint
-router.get('/security/team/status', trackLatency, (req, res) => {
-  try {
-    // Get team status summary
-    const teamStatus = {
-      total: TEAM_ROSTER.length,
-      onDuty: TEAM_ROSTER.filter(member => member.status === 'ON_DUTY').length,
-      patrolling: TEAM_ROSTER.filter(member => member.status === 'PATROLLING').length,
-      offDuty: TEAM_ROSTER.filter(member => member.status === 'OFF_DUTY').length,
-      onBreak: TEAM_ROSTER.filter(member => member.status === 'BREAK').length,
-      lastUpdate: new Date().toISOString(),
-      members: TEAM_ROSTER.map(member => ({
-        id: member.id,
-        nama: member.nama,
-        status: member.status,
-        role: member.role,
-        location: member.location,
-        lastUpdate: member.lastUpdate
-      }))
-    };
-
-    const latency = updateLatencyMetrics(req);
-    metrics.requests.total++;
-    metrics.requests.successful++;
-
-    res.json({
-      success: true,
-      data: teamStatus,
-      latency: `${latency}ms`
-    });
-  } catch (error) {
-    console.error('Error getting team status:', error);
-    const latency = updateLatencyMetrics(req);
-    metrics.requests.total++;
-    metrics.requests.failed++;
-
-    res.status(500).json({
-      success: false,
-      message: 'Failed to retrieve team status',
-      error: error.message,
-      latency: `${latency}ms`
-    });
-  }
-});
+// Legacy endpoints — redirect to DB-backed TeamController
+router.get('/team', TeamController.getAllTeamMembers);
+router.get('/security/team/status', TeamController.getStats);
 
 // Sensor endpoints — resolves #8
 router.get('/sensors', SensorController.getAllSensors);
@@ -1156,13 +984,13 @@ router.post('/system/:id/activities', trackLatency, verifyToken, requireRole(['A
 });
 
 // Alert Controller routes
+router.get('/alerts/stats', AlertController.getAlertStats);
 router.get('/alerts', AlertController.getAlerts);
 router.get('/alerts/:id', AlertController.getAlertById);
 router.post('/alerts', AlertController.createAlert);
 router.put('/alerts/:id', AlertController.updateAlert);
 router.patch('/alerts/:id/acknowledge', AlertController.acknowledgeAlert);
 router.patch('/alerts/:id/resolve', AlertController.resolveAlert);
-router.get('/alerts/stats', AlertController.getAlertStats);
 
 // Perumahan Routes
 router.get('/api/perumahan', PerumahanController.getAllPerumahan);

@@ -168,7 +168,7 @@ class HealthMonitorService {
   // Check camera health
   async checkCameraHealth() {
     try {
-      console.log('Checking camera health...');
+      // silent — only log issues
       const cameras = await Camera.getAll().catch(err => {
         console.error('Error fetching cameras:', err.message);
         return []; // Return empty array if camera fetch fails
@@ -228,7 +228,7 @@ class HealthMonitorService {
         await this.handleCameraIssues(issues);
       }
 
-      console.log(`Camera health check completed. Found ${issues.length} issues.`);
+      if (issues.length) console.log(`[health] camera: ${issues.length} issues`);
 
     } catch (error) {
       console.error('Error checking camera health:', error);
@@ -244,7 +244,7 @@ class HealthMonitorService {
   // Check team health
   async checkTeamHealth() {
     try {
-      console.log('Checking team health...');
+      // silent — only log issues
       const teamMembers = await TeamMember.getAll();
       const now = new Date();
       const issues = [];
@@ -288,7 +288,7 @@ class HealthMonitorService {
         await this.handleTeamIssues(issues);
       }
 
-      console.log(`Team health check completed. Found ${issues.length} issues.`);
+      if (issues.length) console.log(`[health] team: ${issues.length} issues`);
 
     } catch (error) {
       console.error('Error checking team health:', error);
@@ -304,7 +304,7 @@ class HealthMonitorService {
   // Check system health
   async checkSystemHealth() {
     try {
-      console.log('Checking system health...');
+      // silent — only log issues
       const systemHealth = await this.getSystemMetrics();
       const issues = [];
 
@@ -350,7 +350,7 @@ class HealthMonitorService {
         timestamp: new Date()
       });
 
-      console.log(`System health check completed. Found ${issues.length} issues.`);
+      if (issues.length) console.log(`[health] system: ${issues.length} issues`);
 
     } catch (error) {
       console.error('Error checking system health:', error);

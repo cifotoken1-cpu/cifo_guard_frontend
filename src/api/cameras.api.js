@@ -1,24 +1,15 @@
 import { api } from './client';
 
 /**
- * Cameras endpoints.
+ * Cameras endpoints — fully DB-backed.
  *
- * Two backend systems:
- * 1. LEGACY (in-memory) — `/api/cameras` — smoke test PASS, 18 hardcoded cameras
- * 2. DATABASE — `/api/api/cameras` (double prefix bug) — has 3 active bugs
- * 
- * Frontend uses legacy by default. DB endpoints available for CRUD when ready.
+ * Primary: `/api/cameras` — DB query via Camera.getAll(), enriched with heartbeat status.
+ * CRUD:    `/api/api/cameras` — full CRUD operations on cameras table.
  */
 export const camerasApi = {
-  // ──── LEGACY SYSTEM (in-memory) ────
-  // RESOLVED (2026-05-08): Endpoint /api/cameras sekarang DB-backed via Camera.getAll().
-  // Konstanta CCTV_CAMERAS hardcoded sudah dihapus dari backend/api/router.js (commit X).
-  // Vigi AI (C240-01) injection masih dilakukan di sini untuk backward compat —
-  // bisa dihapus kalau backend dijamin selalu return Vigi camera. Lihat INTEGRATION_STATUS.md #1, #8.
   /**
-   * GET /api/cameras — list kamera dari database (sebelumnya 18 hardcoded).
-   * Tetap inject Vigi AI (C240-01) dari endpoint terpisah jika ada di DB.
-   * normalizeCameraList akan memindah Vigi ke index 0 (Vigi-First ordering).
+   * GET /api/cameras — list kamera dari database.
+   * Juga inject Vigi AI (C240-01) dari endpoint terpisah jika belum ada di list.
    */
   list: async () => {
     const data = await api.get('/cameras').then((r) => r.data);
@@ -43,12 +34,9 @@ export const camerasApi = {
   heartbeat: (id, body) =>
     api.post(`/cameras/${id}/heartbeat`, body).then((r) => r.data),
 
-  // ──── DATABASE SYSTEM (when Bug #1 is fixed) ────
+  /** CRUD operations via CameraController (DB-backed) */
   db: {
-    /**
-     * GET /api/api/cameras — list all cameras
-     * NOTE: Bug #1 — Camera.getCount() missing. Workaround: use stats() endpoint.
-     */
+    /** GET /api/api/cameras — list all cameras with pagination */
     list: (params) =>
       api.get('/api/cameras', { params }).then((r) => r.data),
 
@@ -56,12 +44,7 @@ export const camerasApi = {
     get: (id) =>
       api.get(`/api/cameras/${id}`).then((r) => r.data),
 
-    /**
-     * POST /api/api/cameras
-     * NOTE: Bug #2 — controller validation requires {name, ip_address, location}
-     * but model uses {label, lat, lng, stream_url}.
-     * Workaround: send both sets of fields (dual-field in body).
-     */
+    /** POST /api/api/cameras — create camera */
     create: (body) =>
       api.post('/api/cameras', body).then((r) => r.data),
 
@@ -77,10 +60,7 @@ export const camerasApi = {
     delete: (id) =>
       api.delete(`/api/cameras/${id}`).then((r) => r.data),
 
-    /**
-     * GET /api/api/cameras/stats
-     * Workaround for Bug #1: use stats endpoint to get count + summary
-     */
+    /** GET /api/api/cameras/stats — aggregated stats */
     stats: () =>
       api.get('/api/cameras/stats').then((r) => r.data),
 

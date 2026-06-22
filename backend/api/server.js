@@ -208,7 +208,38 @@ if (process.env.NODE_ENV !== 'test') {
   HealthMonitorService.start();
 }
 
-// Start VIGI CCTV AI Bridge (optional — requires VIGI_AI_ENABLED=true in .env)
+// Start VIGI HLS transcoder (always on — needed for live stream in dashboard)
+{
+  const path = require('node:path');
+  const { VigiHLSTranscoder } = require('../services/vigi/vigiHLS');
+  const Camera = require('../models/Camera');
+  const cfg = {
+    host: process.env.VIGI_CAMERA_HOST,
+    port: parseInt(process.env.VIGI_CAMERA_RTSP_PORT || '554', 10),
+    username: process.env.VIGI_CAMERA_USER || 'admin',
+    password: process.env.VIGI_CAMERA_PASS,
+    cameraId: process.env.VIGI_CAMERA_ID || 'C240-01',
+    outputDir: path.join(__dirname, '../uploads/hls'),
+  };
+  if (cfg.host && cfg.password) {
+    const transcoder = new VigiHLSTranscoder(cfg);
+    const hlsUrl = transcoder.start();
+    Camera.getById(cfg.cameraId)
+      .then((cam) => cam && Camera.update(cfg.cameraId, { label: cam.label, area: cam.area, lat: cam.lat, lng: cam.lng, stream_url: hlsUrl }))
+      .catch(() => {});
+    console.log(`[HLS] Transcoder started: ${cfg.cameraId} → ${hlsUrl}`);
+  }
+}
+
+// Start VIGI Crossline Counting — camera-native in/out counting (optional)
+if (process.env.VIGI_CROSSLINE_ENABLED === 'true') {
+  const { startCrosslineCounting } = require('../services/vigi/vigiCrosslineCounting');
+  startCrosslineCounting({ wsService: WebSocketService })
+    .then(() => console.log('[boot] VIGI crossline counting online'))
+    .catch((err) => console.error('[boot] VIGI crossline counting failed:', err.message));
+}
+
+// Start VIGI AI Bridge — snapshot analysis + security alerts (optional)
 if (process.env.VIGI_AI_ENABLED === 'true') {
   const { startVigiAIBridge } = require('../services/vigi');
   startVigiAIBridge()

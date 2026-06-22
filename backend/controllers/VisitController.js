@@ -136,6 +136,30 @@ class VisitController {
     }
   }
 
+  static async updateMetadata(req, res) {
+    try {
+      const { id } = req.params;
+      const { metadata } = req.body;
+
+      if (!metadata || typeof metadata !== 'object') {
+        return res.status(400).json({ success: false, message: 'metadata object is required' });
+      }
+
+      const visit = await PersonVisit.findByPk(id);
+      if (!visit) {
+        return res.status(404).json({ success: false, message: 'Visit not found' });
+      }
+
+      const merged = { ...(visit.metadata || {}), ...metadata };
+      await visit.update({ metadata: merged });
+
+      return res.json({ success: true, data: { id: visit.id, metadata: merged } });
+    } catch (error) {
+      console.error('[VisitController] updateMetadata error:', error);
+      return res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+  }
+
   static async getCameraVisits(req, res) {
     try {
       const { id } = req.params;
@@ -165,22 +189,22 @@ class VisitController {
 
       const visits = await PersonVisit.findAll({
         where,
-        order: [['entry_time', 'DESC']],
+        order: [['entryTime', 'DESC']],
         limit: 100,
-        raw: true
       });
 
       return res.json({
         success: true,
         data: visits.map(v => ({
           id: v.id,
-          camera_id: v.camera_id,
-          person_uid: v.person_uid,
-          entry_time: v.entry_time,
-          exit_time: v.exit_time,
-          duration_seconds: v.duration_seconds,
+          camera_id: v.cameraId,
+          person_uid: v.personUid,
+          entry_time: v.entryTime,
+          exit_time: v.exitTime,
+          duration_seconds: v.durationSeconds,
           confidence: v.confidence,
-          match_method: v.match_method
+          match_method: v.matchMethod,
+          metadata: v.metadata
         }))
       });
     } catch (error) {

@@ -6,5 +6,5 @@ export const PRODUCT = {
   subtitle: 'Visitor Counting System',
   footer: 'CCTV AI Count · Visitor Counting System',
   icon: I.media,
-  hiddenNavIds: ['panic', 'incidents', 'users'],
+  hiddenNavIds: ['panic', 'incidents', 'users', 'map'],
 };

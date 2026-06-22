@@ -31,7 +31,7 @@ const verifyTokenDev = async (req, res, next) => {
 
     // In development/test, if no token provided, use mock user
     if (!authHeader && (NODE_ENV === 'development' || NODE_ENV === 'test')) {
-      console.log('[DEV-AUTH] No token provided, using mock user for development/test');
+      // console.log('[DEV-AUTH] No token provided, using mock user for development/test');
       req.user = DEV_USER;
       return next();
     }
@@ -50,7 +50,7 @@ const verifyTokenDev = async (req, res, next) => {
     if (!token) {
       // In development/test, fallback to mock user
       if (NODE_ENV === 'development' || NODE_ENV === 'test') {
-        console.log('[DEV-AUTH] Invalid token format, using mock user for development/test');
+        // console.log('[DEV-AUTH] Invalid token format, using mock user for development/test');
         req.user = DEV_USER;
         return next();
       }
@@ -71,7 +71,7 @@ const verifyTokenDev = async (req, res, next) => {
       if (!user) {
         // In development, fallback to mock user if user not found
         if (NODE_ENV === 'development') {
-          console.log('[DEV-AUTH] User not found in database, using mock user for development');
+          // console.log('[DEV-AUTH] User not found in database, using mock user for development');
           req.user = DEV_USER;
           return next();
         }
@@ -86,7 +86,7 @@ const verifyTokenDev = async (req, res, next) => {
       if (user.account_status !== 'ACTIVE') {
         // In development, still allow inactive users
         if (NODE_ENV === 'development') {
-          console.log('[DEV-AUTH] User inactive, but allowing for development');
+          // console.log('[DEV-AUTH] User inactive, but allowing for development');
           req.user = {
             id: user.id,
             username: user.username,
@@ -118,7 +118,7 @@ const verifyTokenDev = async (req, res, next) => {
     } catch (jwtError) {
       // JWT verification failed
       if (NODE_ENV === 'development') {
-        console.log('[DEV-AUTH] JWT verification failed, using mock user for development:', jwtError.message);
+        // console.log('[DEV-AUTH] JWT verification failed, using mock user for development:', jwtError.message);
         req.user = DEV_USER;
         return next();
       }

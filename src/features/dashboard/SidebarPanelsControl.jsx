@@ -8,11 +8,7 @@ export function SidebarPanelsControl() {
   const resetSectionVisibility = useUIStore((s) => s.resetSectionVisibility);
 
   const panels = [
-    { id: 'overview', label: 'Overview' },
-    { id: 'securityMode', label: 'Emergency' },
-    { id: 'sensorStatus', label: 'Sensor Status' },
     { id: 'liveCameras', label: 'Live Cameras' },
-    { id: 'activityLogPanel', label: 'Activity Log' },
   ];
 
   const hiddenCount = panels.filter((p) => !sectionVisibility[p.id]).length;

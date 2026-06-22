@@ -212,7 +212,7 @@ class CameraHealthLog {
       };
     } catch (error) {
       console.error('Error in CameraHealthLog.createViaSequelize:', error);
-      // Return a mock result so the health check can continue
+      // Return a fallback result so the health check can continue
       return {
         id: null,
         camera_id,

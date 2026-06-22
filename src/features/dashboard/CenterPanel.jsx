@@ -87,7 +87,7 @@ export function CenterPanel() {
 
   // Camera data
   const cameras = normalizeCameraList(camerasData) ?? [];
-  const visibleCams = cameras.slice(0, 3);
+  const visibleCams = cameras.filter((c) => c.streamUrl).slice(0, 3);
 
   // Activity log data
   const log = mapActivitiesToLog(activities);

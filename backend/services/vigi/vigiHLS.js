@@ -31,6 +31,12 @@ class VigiHLSTranscoder {
 
   start() {
     fs.mkdirSync(this.outputDir, { recursive: true });
+    // Clean stale segments from previous runs
+    for (const f of fs.readdirSync(this.outputDir)) {
+      if (f.endsWith('.ts') || f.endsWith('.m3u8')) {
+        try { fs.unlinkSync(path.join(this.outputDir, f)); } catch (_) {}
+      }
+    }
     this._spawn();
     return this.hlsUrl;
   }
@@ -39,14 +45,19 @@ class VigiHLSTranscoder {
     if (this._stopped) return;
 
     const args = [
+      '-y',                            // overwrite output files
       '-rtsp_transport', 'tcp',        // TCP is more reliable than UDP on LAN
+      '-fflags', '+nobuffer+discardcorrupt',
+      '-flags', 'low_delay',
       '-i', this.rtspUrl,
       '-c:v', 'copy',                  // remux only — no transcode, minimal CPU
       '-an',                           // drop audio track
-      '-hls_time', '2',                // 2-second segments
-      '-hls_list_size', '3',           // keep 3 segments in playlist (~6s buffer)
-      '-hls_flags', 'delete_segments+append_list',
-      '-hls_segment_filename', path.join(this.outputDir, 'seg%03d.ts'),
+      '-f', 'hls',
+      '-hls_time', '1',                // 1-second segments
+      '-hls_list_size', '3',           // keep 3 segments in playlist
+      '-hls_flags', 'delete_segments',  // delete old .ts files (no append_list)
+      '-hls_segment_type', 'mpegts',
+      '-hls_segment_filename', path.join(this.outputDir, 'seg%05d.ts'),
       '-loglevel', 'error',
       this.playlistPath,
     ];

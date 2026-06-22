@@ -693,8 +693,8 @@ class AlertController {
           [Alert.sequelize.fn('COUNT', Alert.sequelize.literal("CASE WHEN status = 'RESOLVED' THEN 1 END")), 'resolvedAlerts'],
           [Alert.sequelize.fn('COUNT', Alert.sequelize.literal("CASE WHEN is_emergency = true THEN 1 END")), 'emergencyAlerts'],
           [Alert.sequelize.fn('COUNT', Alert.sequelize.literal("CASE WHEN severity = 'CRITICAL' THEN 1 END")), 'criticalAlerts'],
-          [Alert.sequelize.fn('AVG', Alert.sequelize.literal('delivered_count::float / NULLIF(total_recipients, 0)')), 'avgDeliveryRate'],
-          [Alert.sequelize.fn('AVG', Alert.sequelize.literal('acknowledged_count::float / NULLIF(total_recipients, 0)')), 'avgAcknowledgmentRate']
+          [Alert.sequelize.fn('AVG', Alert.sequelize.literal('CAST(delivered_count AS DECIMAL(10,4)) / NULLIF(total_recipients, 0)')), 'avgDeliveryRate'],
+          [Alert.sequelize.fn('AVG', Alert.sequelize.literal('CAST(acknowledged_count AS DECIMAL(10,4)) / NULLIF(total_recipients, 0)')), 'avgAcknowledgmentRate']
         ],
         raw: true
       });

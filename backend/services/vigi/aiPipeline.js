@@ -91,7 +91,7 @@ Analyze the attached snapshot and return the JSON object as specified.`;
     model: process.env.OPENAI_VISION_MODEL || 'gpt-4o-mini',
     response_format: { type: 'json_object' },
     temperature: 0.2,
-    max_tokens: 500,
+    max_tokens: 250, // JSON respons pendek — generation lebih cepat
     messages: [
       { role: 'system', content: SYSTEM_PROMPT },
       {

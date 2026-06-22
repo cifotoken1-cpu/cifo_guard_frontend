@@ -12,7 +12,7 @@ const developmentAuth = require('./dev-auth');
 // Select middleware based on environment
 const authMiddleware = (NODE_ENV === 'development' || NODE_ENV === 'test') ? developmentAuth : productionAuth;
 
-console.log(`[AUTH-CONFIG] Using ${(NODE_ENV === 'development' || NODE_ENV === 'test') ? 'development' : 'production'} authentication middleware`);
+// auth-config log suppressed
 
 module.exports = {
   verifyToken: authMiddleware.verifyToken,

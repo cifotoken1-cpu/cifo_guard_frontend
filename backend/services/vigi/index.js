@@ -2,13 +2,72 @@
 // Orchestrator: wires VigiAuth + VigiEventListener + VigiSnapshot + AI pipeline
 // into a single background bridge that runs alongside your Express app.
 
-const path = require('node:path');
 const { VigiAuth } = require('./vigiAuth');
 const { VigiEventListener } = require('./vigiEventListener');
 const { VigiSnapshot } = require('./vigiSnapshot');
-const { VigiHLSTranscoder } = require('./vigiHLS');
 const { analyzeSnapshot } = require('./aiPipeline');
 const { persistEnrichedAlert } = require('./alertEnricher');
+
+const FACE_WORKER_URL = process.env.FACE_WORKER_URL || 'http://localhost:5001';
+// ROI crop for face worker — ffmpeg crop filter format
+const FACE_WORKER_CROP = process.env.FACE_WORKER_CROP || '';
+// Which events trigger face worker: "human", "region", "motion", or comma-separated
+const FACE_TRIGGER = (process.env.FACE_TRIGGER || 'human').toLowerCase();
+const FACE_TRIGGER_MAP = {
+  human: ['PeopleDetection'],
+  region: ['AreaEntryDetection', 'AreaExitDetection'],
+  motion: ['MotionDetection'],
+};
+const FACE_TRIGGER_EVENTS = FACE_TRIGGER.split(',')
+  .flatMap(t => FACE_TRIGGER_MAP[t.trim()] || [t.trim()]);
+
+// Event types whose AI alert is skipped — laggy/stale events (e.g. motion-segment
+// events arrive ~10s late, so a fresh snapshot shows "no person" → wasted tokens).
+// Comma-separated. Substring match. Default: skip MotionDetection variants.
+const ALERT_SKIP_EVENTS = (process.env.VIGI_ALERT_SKIP_EVENTS || 'MotionDetection')
+  .split(',').map(s => s.trim()).filter(Boolean);
+const isAlertSkipped = (type) => ALERT_SKIP_EVENTS.some(s => type.includes(s));
+
+// Burst capture: how many frames + spacing. ~5 frames × 400ms = ~2s window to
+// observe movement direction (face bbox growing = approach, shrinking = recede).
+const FACE_BURST_COUNT = parseInt(process.env.FACE_BURST_COUNT || '5', 10);
+const FACE_BURST_INTERVAL = parseInt(process.env.FACE_BURST_INTERVAL || '400', 10);
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// Collect distinct warm frames over the burst window, cropped to the door ROI.
+async function collectBurstFrames(snapshot) {
+  const frames = [];
+  let lastTs = -1;
+  for (let i = 0; i < FACE_BURST_COUNT; i++) {
+    const raw = snapshot.getWarmFrameRaw();
+    if (raw && raw.ts !== lastTs) {
+      lastTs = raw.ts;
+      let f = raw.buffer;
+      if (FACE_WORKER_CROP) {
+        try { f = await VigiSnapshot.cropBuffer(raw.buffer, FACE_WORKER_CROP); } catch (_) {}
+      }
+      frames.push(f);
+    }
+    if (i < FACE_BURST_COUNT - 1) await sleep(FACE_BURST_INTERVAL);
+  }
+  return frames;
+}
+
+async function callFaceWorkerBurst(frames) {
+  try {
+    const axios = require('axios');
+    const payload = { frames: frames.map((b) => b.toString('base64')) };
+    const res = await axios.post(`${FACE_WORKER_URL}/recognize_burst`, payload, {
+      headers: { 'Content-Type': 'application/json' },
+      timeout: 25000,
+      maxBodyLength: Infinity,
+      maxContentLength: Infinity,
+    });
+    return res.data;
+  } catch (e) {
+    return null;
+  }
+}
 
 // Event types we care about. Add/remove based on what's enabled in the camera.
 // NOTE: each event also needs `msg_push_enabled` to be ON in the corresponding
@@ -21,6 +80,7 @@ const DEFAULT_EVENTS = [
   'LoiterDetection',
   'CrossLineDetection',
   'AreaEntryDetection',
+  'AreaExitDetection',
   'TamperDetection',
 ];
 
@@ -58,39 +118,9 @@ async function startVigiAIBridge(overrides = {}) {
     port: cfg.rtspPort,
     username: cfg.username,
     password: cfg.password,
-    stream: 'stream2', // sub-stream is enough for AI vision and saves bandwidth
+    // stream1 = main/HD (wajah lebih tajam utk InsightFace), stream2 = sub/VGA (ringan)
+    stream: process.env.VIGI_SNAPSHOT_STREAM || 'stream2',
   });
-
-  // Start HLS transcoder — stream1 (HD) for display, stream2 is used by AI above
-  const hlsTranscoder = new VigiHLSTranscoder({
-    host: cfg.host,
-    port: cfg.rtspPort,
-    username: cfg.username,
-    password: cfg.password,
-    cameraId: cfg.cameraId,
-    outputDir: path.join(__dirname, '../../uploads/hls'),
-  });
-  const hlsUrl = hlsTranscoder.start();
-
-  // Update stream_url in DB so the frontend picks up the HLS URL automatically
-  try {
-    const Camera = require('../../models/Camera');
-    const existing = await Camera.getById(cfg.cameraId);
-    if (existing) {
-      await Camera.update(cfg.cameraId, {
-        label: existing.label,
-        area: existing.area,
-        lat: existing.lat,
-        lng: existing.lng,
-        stream_url: hlsUrl,
-      });
-      log('info', `stream_url updated to ${hlsUrl}`);
-    } else {
-      log('warn', `camera ${cfg.cameraId} not in DB yet — register it with stream_url: "${hlsUrl}"`);
-    }
-  } catch (e) {
-    log('warn', `could not update stream_url in DB: ${e.message}`);
-  }
 
   await auth.login();
   log('info', `authenticated to camera ${cfg.host}`);
@@ -104,9 +134,14 @@ async function startVigiAIBridge(overrides = {}) {
     log('warn', `could not set msg_push_interval: ${e.message}`);
   }
 
+  snapshot.startWarmStream({ fps: 2 });
+  log('info', 'warm stream started (persistent ffmpeg, 2 fps)');
+
   const listener = new VigiEventListener(auth, {
     events: cfg.events,
-    heartbeat: 15,
+    // Heartbeat = seberapa sering kamera kirim boundary. Event di-flush saat
+    // boundary berikutnya, jadi heartbeat rendah = event sampai lebih cepat.
+    heartbeat: parseInt(process.env.VIGI_EVENT_HEARTBEAT || '2', 10),
   });
 
   // Single-flight queue: we never run two AI calls concurrently for the same
@@ -123,31 +158,58 @@ async function startVigiAIBridge(overrides = {}) {
     const startedAt = Date.now();
 
     try {
-      log('info', `processing ${event.event_type} @ ${event.time}`);
+      log('info', `${event.event_type}`);
 
-      const buffer = await snapshot.grab({ timeoutMs: 8000 });
-      log('info', `snapshot captured (${buffer.length} bytes)`);
+      const buffer = event._snapshotBuffer || await snapshot.grab({ timeoutMs: 8000 });
 
-      const aiResult = await analyzeSnapshot({
-        imageBuffer: buffer,
-        eventMeta: event,
-        location: cfg.location,
-      });
+      // Crop for face worker + AI alert
+      let faceBuffer = buffer;
+      if (FACE_WORKER_CROP) {
+        try {
+          faceBuffer = await VigiSnapshot.cropBuffer(buffer, FACE_WORKER_CROP);
+        } catch (e) {
+          log('warn', `crop gagal: ${e.message}`);
+        }
+      }
 
-      const { alertId, panicAlertId } = await persistEnrichedAlert({
-        eventMeta: event,
-        snapshotBuffer: buffer,
-        aiResult,
-        cameraId: cfg.cameraId,
-        cameraLocation: cfg.location,
-      });
+      // Face recognition — burst capture (~2s) so the worker can pick the best
+      // face frame AND infer direction (approach=entry, recede=exit). Async.
+      const shouldCallFace = FACE_TRIGGER_EVENTS.includes(event.event_type);
+      if (shouldCallFace) {
+        collectBurstFrames(snapshot)
+          .then((frames) => (frames.length ? callFaceWorkerBurst(frames) : null))
+          .then((faceResult) => {
+            if (faceResult) {
+              const acts = faceResult.actions?.map((a) => `${a.person_uid}:${a.action}`).join(', ') || '-';
+              log('info', `face(burst ${faceResult.frames}, ${faceResult.motion}): ${acts}`);
+            }
+          }).catch(() => {});
+      }
 
-      log(
-        'info',
-        `alert#${alertId} severity=${aiResult.severity} action=${aiResult.recommended_action}` +
-          (panicAlertId ? ` panic#${panicAlertId} ESCALATED` : '') +
-          ` (${Date.now() - startedAt}ms total, ${aiResult._meta?.tokens || 0} tokens)`
-      );
+      // AI alert — skip laggy/stale event types (saves tokens on "no person" frames)
+      if (isAlertSkipped(event.event_type)) {
+        log('info', `  alert di-skip (${event.event_type} laggy)`);
+      } else if (process.env.VIGI_AI_ALERTS_ENABLED !== 'false') {
+        const aiResult = await analyzeSnapshot({
+          imageBuffer: faceBuffer,
+          eventMeta: event,
+          location: cfg.location,
+        });
+
+        const { alertId, panicAlertId } = await persistEnrichedAlert({
+          eventMeta: event,
+          snapshotBuffer: faceBuffer,
+          aiResult,
+          cameraId: cfg.cameraId,
+          cameraLocation: cfg.location,
+        });
+
+        const desc = aiResult.ai_description || aiResult.description || '';
+        const short = desc.length > 80 ? desc.slice(0, 80) + '...' : desc;
+        log('info',
+          `${aiResult.severity}${panicAlertId ? ' PANIC!' : ''} — ${short} (${Date.now() - startedAt}ms)`
+        );
+      }
     } catch (err) {
       log('error', `processing failed: ${err.message}`);
     } finally {
@@ -158,12 +220,33 @@ async function startVigiAIBridge(overrides = {}) {
   };
 
   listener.on('event', (event) => {
+    // Delay measurement: camera-detect (event.time, unix sec) → received now
+    const camT = parseInt(event.time, 10);
+    const evDelay = camT ? (Date.now() / 1000 - camT).toFixed(1) : '?';
+    log('info', `${event.event_type} diterima — delay kamera→backend: ${evDelay}s`);
+
     if (queue.length >= MAX_QUEUE) {
       log('warn', `queue full (${MAX_QUEUE}), dropping oldest event`);
       queue.shift();
     }
-    queue.push(event);
-    processNext();
+    // Use warm frame (instant) or fallback to fresh grab
+    const warm = snapshot.getWarmFrame(3000);
+    if (warm) {
+      const age = snapshot.getWarmFrameAge();
+      log('info', `  snapshot warm (umur frame ${(age / 1000).toFixed(1)}s)`);
+      event._snapshotBuffer = warm;
+      queue.push(event);
+      processNext();
+    } else {
+      snapshot.grab({ timeoutMs: 8000 }).then((buffer) => {
+        event._snapshotBuffer = buffer;
+      }).catch((err) => {
+        log('warn', `snapshot failed: ${err.message}`);
+      }).finally(() => {
+        queue.push(event);
+        processNext();
+      });
+    }
   });
 
   listener.on('connected', () => log('info', 'event stream connected'));
@@ -179,12 +262,10 @@ async function startVigiAIBridge(overrides = {}) {
     auth,
     listener,
     snapshot,
-    hlsTranscoder,
-    hlsUrl,
     cfg,
     stop: async () => {
       log('info', 'stopping bridge...');
-      hlsTranscoder.stop();
+      snapshot.stopWarmStream();
       await listener.stop();
     },
   };

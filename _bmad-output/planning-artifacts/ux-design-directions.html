@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NLS HITECH NIAGA — Design Directions</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Inter', system-ui, sans-serif; background: #0f172a; color: #fff; }
+
+  /* Navigation */
+  .dir-nav { position: fixed; top: 0; left: 0; right: 0; z-index: 1000; background: rgba(15,23,42,0.95); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(255,255,255,0.1); padding: 12px 24px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .dir-nav h1 { font-size: 14px; font-weight: 600; color: #60a5fa; margin-right: 16px; white-space: nowrap; }
+  .dir-btn { padding: 8px 16px; border: 1px solid rgba(255,255,255,0.2); background: transparent; color: #fff; border-radius: 6px; cursor: pointer; font-family: inherit; font-size: 13px; transition: all 0.2s; }
+  .dir-btn:hover, .dir-btn.active { background: #2563eb; border-color: #2563eb; }
+
+  /* Mockup Container */
+  .mockup-section { display: none; min-height: 100vh; padding-top: 60px; }
+  .mockup-section.active { display: block; }
+
+  /* Direction Label */
+  .dir-label { padding: 24px 64px; background: #1e293b; border-bottom: 1px solid rgba(255,255,255,0.05); }
+  .dir-label h2 { font-size: 24px; font-weight: 700; margin-bottom: 4px; }
+  .dir-label p { font-size: 14px; color: #94a3b8; }
+
+  /* === DIRECTION A: Cinematic Parallax === */
+  .dir-a-hero { position: relative; height: 100vh; overflow: hidden; display: flex; align-items: center; justify-content: center; text-align: center; }
+  .dir-a-hero-bg { position: absolute; inset: 0; background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%); }
+  .dir-a-hero-bg::after { content: ''; position: absolute; inset: 0; background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800"><rect fill="%231e293b"/><polygon fill="%23374151" points="0,800 400,400 800,600 1200,300 1200,800"/><polygon fill="%230f172a" opacity="0.5" points="0,800 300,500 600,700 1200,400 1200,800"/></svg>') center/cover; opacity: 0.4; }
+  .dir-a-hero-content { position: relative; z-index: 2; max-width: 800px; padding: 0 24px; }
+  .dir-a-hero-content .badge { display: inline-block; padding: 6px 16px; border: 1px solid #2563eb; border-radius: 20px; font-size: 12px; font-weight: 500; letter-spacing: 2px; text-transform: uppercase; color: #60a5fa; margin-bottom: 24px; }
+  .dir-a-hero-content h1 { font-size: 64px; font-weight: 700; line-height: 1.1; margin-bottom: 16px; }
+  .dir-a-hero-content h1 span { color: #3b82f6; }
+  .dir-a-hero-content p { font-size: 18px; color: #94a3b8; line-height: 1.6; margin-bottom: 32px; }
+  .btn-primary { display: inline-block; padding: 14px 32px; background: #2563eb; color: #fff; border-radius: 8px; font-size: 15px; font-weight: 600; text-decoration: none; transition: all 0.2s; }
+  .btn-primary:hover { background: #3b82f6; transform: translateY(-1px); }
+  .btn-outline { display: inline-block; padding: 14px 32px; border: 1px solid rgba(255,255,255,0.3); color: #fff; border-radius: 8px; font-size: 15px; font-weight: 500; text-decoration: none; margin-left: 12px; transition: all 0.2s; }
+  .btn-outline:hover { border-color: #fff; background: rgba(255,255,255,0.05); }
+
+  /* Sticky Header Demo */
+  .demo-header { padding: 16px 64px; display: flex; align-items: center; justify-content: space-between; background: transparent; position: absolute; top: 0; left: 0; right: 0; z-index: 10; }
+  .demo-header.solid { background: rgba(15,23,42,0.95); backdrop-filter: blur(10px); }
+  .demo-logo { font-size: 18px; font-weight: 700; letter-spacing: 1px; }
+  .demo-logo span { color: #3b82f6; }
+  .demo-nav { display: flex; gap: 28px; font-size: 14px; font-weight: 500; color: #cbd5e1; }
+  .demo-nav a { color: inherit; text-decoration: none; transition: color 0.2s; }
+  .demo-nav a:hover { color: #fff; }
+  .demo-contact-info { font-size: 13px; color: #94a3b8; display: flex; gap: 16px; }
+
+  /* Section Styles */
+  .section-dark { background: #0f172a; padding: 96px 64px; }
+  .section-light { background: #f8fafc; padding: 96px 64px; color: #0f172a; }
+  .section-slate { background: #1e293b; padding: 96px 64px; }
+  .section-title { font-size: 36px; font-weight: 600; margin-bottom: 8px; }
+  .section-subtitle { font-size: 16px; color: #64748b; margin-bottom: 48px; }
+
+  /* Portfolio Grid */
+  .portfolio-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; max-width: 1280px; margin: 0 auto; }
+  .portfolio-card { position: relative; aspect-ratio: 4/3; border-radius: 12px; overflow: hidden; cursor: pointer; }
+  .portfolio-card-bg { position: absolute; inset: 0; transition: transform 0.4s; }
+  .portfolio-card:hover .portfolio-card-bg { transform: scale(1.05); }
+  .portfolio-card-overlay { position: absolute; inset: 0; background: linear-gradient(to top, rgba(15,23,42,0.9) 0%, transparent 60%); display: flex; flex-direction: column; justify-content: flex-end; padding: 24px; }
+  .portfolio-card h3 { font-size: 18px; font-weight: 600; color: #fff; }
+  .portfolio-card p { font-size: 13px; color: #94a3b8; }
+  .portfolio-card .tag { display: inline-block; padding: 4px 10px; background: rgba(37,99,235,0.3); border-radius: 4px; font-size: 11px; color: #60a5fa; font-weight: 500; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
+
+  /* Stats */
+  .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 32px; max-width: 1280px; margin: 0 auto; text-align: center; }
+  .stat-item .stat-number { font-size: 48px; font-weight: 700; color: #3b82f6; }
+  .stat-item .stat-label { font-size: 14px; color: #94a3b8; margin-top: 4px; }
+
+  /* Services Cards */
+  .services-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; max-width: 1280px; margin: 0 auto; }
+  .service-card { padding: 32px; border-radius: 12px; transition: all 0.3s; }
+  .service-card-dark { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); }
+  .service-card-dark:hover { background: rgba(37,99,235,0.1); border-color: #2563eb; }
+  .service-card-light { background: #fff; border: 1px solid #e2e8f0; }
+  .service-card-light:hover { border-color: #2563eb; box-shadow: 0 4px 24px rgba(37,99,235,0.1); }
+  .service-icon { width: 48px; height: 48px; background: rgba(37,99,235,0.15); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 24px; margin-bottom: 16px; }
+  .service-card h3 { font-size: 18px; font-weight: 600; margin-bottom: 8px; }
+  .service-card p { font-size: 14px; color: #64748b; line-height: 1.6; }
+
+  /* Contact CTA */
+  .cta-section { background: linear-gradient(135deg, #1e293b, #0f172a); padding: 96px 64px; text-align: center; }
+  .cta-section h2 { font-size: 48px; font-weight: 700; margin-bottom: 16px; }
+  .cta-section p { font-size: 18px; color: #94a3b8; margin-bottom: 32px; }
+  .cta-contacts { display: flex; justify-content: center; gap: 32px; margin-top: 24px; }
+  .cta-contact-item { font-size: 16px; color: #cbd5e1; display: flex; align-items: center; gap: 8px; }
+
+  /* Footer */
+  .demo-footer { background: #0f172a; border-top: 1px solid rgba(255,255,255,0.1); padding: 48px 64px; display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 48px; font-size: 14px; color: #64748b; }
+  .demo-footer h4 { color: #fff; font-size: 14px; font-weight: 600; margin-bottom: 16px; }
+  .demo-footer a { color: #94a3b8; text-decoration: none; display: block; margin-bottom: 8px; }
+  .demo-footer a:hover { color: #3b82f6; }
+  .lang-toggle { display: inline-flex; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; overflow: hidden; margin-top: 12px; }
+  .lang-toggle span { padding: 6px 12px; font-size: 12px; cursor: pointer; transition: all 0.2s; }
+  .lang-toggle span.active { background: #2563eb; color: #fff; }
+
+  /* === DIRECTION B: Split Layout === */
+  .dir-b-hero { display: grid; grid-template-columns: 1fr 1fr; min-height: 100vh; }
+  .dir-b-hero-left { display: flex; flex-direction: column; justify-content: center; padding: 96px 64px; background: #0f172a; }
+  .dir-b-hero-right { position: relative; background: linear-gradient(135deg, #374151, #1e293b); overflow: hidden; }
+  .dir-b-hero-right::after { content: ''; position: absolute; inset: 0; background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 800"><polygon fill="%232563eb" opacity="0.15" points="0,0 600,200 600,800 0,600"/><polygon fill="%233b82f6" opacity="0.1" points="200,0 600,0 600,400 0,800"/></svg>') center/cover; }
+  .dir-b-hero-left h1 { font-size: 56px; font-weight: 700; line-height: 1.1; margin-bottom: 20px; }
+
+  /* === DIRECTION C: Minimal Brutalist === */
+  .dir-c-hero { min-height: 100vh; display: flex; flex-direction: column; justify-content: flex-end; padding: 96px 64px 64px; background: #0f172a; position: relative; }
+  .dir-c-hero::before { content: ''; position: absolute; top: 0; right: 0; width: 50%; height: 100%; background: linear-gradient(180deg, #1e293b, transparent); }
+  .dir-c-hero h1 { font-size: 80px; font-weight: 700; line-height: 1.0; max-width: 900px; position: relative; z-index: 2; }
+  .dir-c-hero h1 span { display: block; color: #3b82f6; }
+  .dir-c-line { width: 64px; height: 3px; background: #2563eb; margin: 24px 0; }
+
+  /* === DIRECTION D: Card-based === */
+  .dir-d-hero { min-height: 100vh; padding: 96px 64px; background: #f8fafc; display: flex; align-items: center; }
+  .dir-d-hero-inner { max-width: 1280px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: center; }
+  .dir-d-hero h1 { font-size: 52px; font-weight: 700; line-height: 1.1; color: #0f172a; margin-bottom: 16px; }
+  .dir-d-hero p { color: #64748b; font-size: 18px; line-height: 1.6; margin-bottom: 32px; }
+  .dir-d-card-stack { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .dir-d-mini-card { padding: 24px; border-radius: 12px; background: #fff; border: 1px solid #e2e8f0; }
+  .dir-d-mini-card h4 { font-size: 14px; font-weight: 600; color: #0f172a; margin-bottom: 4px; }
+  .dir-d-mini-card p { font-size: 13px; color: #64748b; }
+  .dir-d-mini-card .num { font-size: 28px; font-weight: 700; color: #2563eb; margin-bottom: 8px; }
+
+  /* === DIRECTION E: Full-bleed Visual === */
+  .dir-e-hero { min-height: 100vh; position: relative; display: flex; align-items: flex-end; padding: 64px; background: linear-gradient(to right, #0f172a 40%, #374151 100%); }
+  .dir-e-hero::after { content: ''; position: absolute; right: 0; top: 0; width: 55%; height: 100%; background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800"><rect fill="%23374151"/><rect x="100" y="50" width="120" height="700" fill="%2364748b" opacity="0.3" rx="4"/><rect x="240" y="100" width="120" height="650" fill="%2364748b" opacity="0.2" rx="4"/><rect x="380" y="0" width="120" height="800" fill="%2364748b" opacity="0.25" rx="4"/><rect x="520" y="80" width="120" height="720" fill="%2364748b" opacity="0.15" rx="4"/></svg>') center/cover; opacity: 0.5; }
+  .dir-e-hero-content { position: relative; z-index: 2; max-width: 600px; }
+  .dir-e-hero-content h1 { font-size: 60px; font-weight: 700; line-height: 1.1; margin-bottom: 12px; }
+  .dir-e-hero-content .legacy { display: flex; align-items: center; gap: 16px; margin-bottom: 24px; padding: 16px 20px; background: rgba(37,99,235,0.15); border-left: 3px solid #2563eb; border-radius: 0 8px 8px 0; }
+  .dir-e-hero-content .legacy span { font-size: 14px; color: #60a5fa; }
+
+  /* === DIRECTION F: Timeline Narrative === */
+  .dir-f-hero { min-height: 100vh; padding: 96px 64px; background: #0f172a; display: flex; align-items: center; }
+  .dir-f-hero-inner { max-width: 1280px; margin: 0 auto; width: 100%; }
+  .dir-f-timeline { position: relative; padding-left: 48px; border-left: 2px solid #374151; }
+  .dir-f-timeline-item { position: relative; margin-bottom: 48px; padding-left: 24px; }
+  .dir-f-timeline-item::before { content: ''; position: absolute; left: -55px; top: 4px; width: 12px; height: 12px; border-radius: 50%; background: #2563eb; border: 3px solid #0f172a; }
+  .dir-f-timeline-item .year { font-size: 14px; font-weight: 600; color: #3b82f6; letter-spacing: 1px; }
+  .dir-f-timeline-item h3 { font-size: 24px; font-weight: 600; margin: 4px 0; }
+  .dir-f-timeline-item p { font-size: 15px; color: #94a3b8; line-height: 1.5; }
+
+  /* Comparison mode */
+  .compare-mode { display: none; }
+  .compare-mode.active { display: grid; grid-template-columns: 1fr 1fr; min-height: 100vh; padding-top: 60px; }
+  .compare-panel { border: 1px solid rgba(255,255,255,0.1); overflow: auto; max-height: calc(100vh - 60px); }
+</style>
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="dir-nav">
+  <h1>NLS HITECH NIAGA — Design Directions</h1>
+  <button class="dir-btn active" onclick="showDir('a')">A: Cinematic</button>
+  <button class="dir-btn" onclick="showDir('b')">B: Split Layout</button>
+  <button class="dir-btn" onclick="showDir('c')">C: Brutalist</button>
+  <button class="dir-btn" onclick="showDir('d')">D: Light Card</button>
+  <button class="dir-btn" onclick="showDir('e')">E: Full-bleed</button>
+  <button class="dir-btn" onclick="showDir('f')">F: Timeline</button>
+</nav>
+
+<!-- ==================== DIRECTION A: Cinematic Parallax ==================== -->
+<div class="mockup-section active" id="dir-a">
+  <div class="dir-label">
+    <h2>Direction A — Cinematic Parallax</h2>
+    <p>Full-screen hero dengan parallax depth, dark palette dominan, kesan megah dan premium. Fokus: visual impact pertama.</p>
+  </div>
+
+  <div style="position: relative;">
+    <div class="demo-header">
+      <div class="demo-logo">NLS <span>HITECH</span></div>
+      <div class="demo-nav">
+        <a href="#">Home</a><a href="#">About</a><a href="#">Services</a><a href="#">Projects</a><a href="#">Contact</a>
+      </div>
+      <div class="demo-contact-info">
+        <span>📧 info@nlshitech.com</span>
+        <span>📞 +60 3-XXXX XXXX</span>
+        <span class="lang-toggle"><span class="active">EN</span><span>BM</span></span>
+      </div>
+    </div>
+
+    <div class="dir-a-hero">
+      <div class="dir-a-hero-bg"></div>
+      <div class="dir-a-hero-content">
+        <div class="badge">CIDB G4 Registered Contractor</div>
+        <h1>Building Malaysia's <span>Future</span></h1>
+        <p>From the iconic Petronas Twin Towers to your next project — end-to-end construction excellence since day one.</p>
+        <a href="#" class="btn-primary">View Our Projects</a>
+        <a href="#" class="btn-outline">Contact Us</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Portfolio Section -->
+  <div class="section-dark">
+    <div style="max-width: 1280px; margin: 0 auto;">
+      <div class="section-title" style="color: #fff;">Featured Projects</div>
+      <div class="section-subtitle" style="color: #94a3b8;">Our latest work across residential, commercial, and civil sectors</div>
+      <div class="portfolio-grid">
+        <div class="portfolio-card">
+          <div class="portfolio-card-bg" style="background: linear-gradient(135deg, #374151, #1e293b);"></div>
+          <div class="portfolio-card-overlay">
+            <span class="tag">Commercial</span>
+            <h3>Selangor Office Complex</h3>
+            <p>Full structural & finishing works</p>
+          </div>
+        </div>
+        <div class="portfolio-card">
+          <div class="portfolio-card-bg" style="background: linear-gradient(135deg, #1e293b, #374151);"></div>
+          <div class="portfolio-card-overlay">
+            <span class="tag">Residential</span>
+            <h3>Petaling Heights Residence</h3>
+            <p>End-to-end construction</p>
+          </div>
+        </div>
+        <div class="portfolio-card">
+          <div class="portfolio-card-bg" style="background: linear-gradient(135deg, #374151, #0f172a);"></div>
+          <div class="portfolio-card-overlay">
+            <span class="tag">Civil</span>
+            <h3>Infrastructure Development</h3>
+            <p>Site preparation & structural works</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats Section (Legacy) -->
+  <div class="section-slate">
+    <div style="max-width: 1280px; margin: 0 auto; text-align: center; margin-bottom: 48px;">
+      <div class="section-title" style="color: #fff;">Our Legacy</div>
+      <p style="color: #94a3b8; font-size: 16px;">Proudly contributed to Malaysia's most iconic landmark</p>
+    </div>
+    <div class="stats-row">
+      <div class="stat-item"><div class="stat-number">25+</div><div class="stat-label">Years Experience</div></div>
+      <div class="stat-item"><div class="stat-number">500+</div><div class="stat-label">Projects Completed</div></div>
+      <div class="stat-item"><div class="stat-number">G4</div><div class="stat-label">CIDB Registered</div></div>
+      <div class="stat-item"><div class="stat-number">1</div><div class="stat-label">Iconic Twin Towers</div></div>
+    </div>
+  </div>
+
+  <!-- Services -->
+  <div class="section-dark">
+    <div style="max-width: 1280px; margin: 0 auto;">
+      <div class="section-title" style="color: #fff;">Our Services</div>
+      <div class="section-subtitle" style="color: #94a3b8;">End-to-end construction solutions</div>
+      <div class="services-grid">
+        <div class="service-card service-card-dark">
+          <div class="service-icon">🏗️</div>
+          <h3 style="color: #fff;">Site Preparation</h3>
+          <p style="color: #94a3b8;">Ground works, clearing, and foundation preparation for all project types.</p>
+        </div>
+        <div class="service-card service-card-dark">
+          <div class="service-icon">🏢</div>
+          <h3 style="color: #fff;">Structural Works</h3>
+          <p style="color: #94a3b8;">Reinforced concrete, steel structures, and building frames.</p>
+        </div>
+        <div class="service-card service-card-dark">
+          <div class="service-icon">🎨</div>
+          <h3 style="color: #fff;">Finishing</h3>
+          <p style="color: #94a3b8;">Interior finishing, tiling, painting, and final fit-out.</p>
+        </div>
+        <div class="service-card service-card-dark">
+          <div class="service-icon">🔧</div>
+          <h3 style="color: #fff;">Maintenance</h3>
+          <p style="color: #94a3b8;">Scheduled maintenance and building upkeep services.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CTA -->
+  <div class="cta-section">
+    <h2>Ready to <span style="color: #3b82f6;">Build</span>?</h2>
+    <p>Let's discuss your next project</p>
+    <a href="#" class="btn-primary">Get In Touch</a>
+    <div class="cta-contacts">
+      <div class="cta-contact-item">📧 info@nlshitech.com</div>
+      <div class="cta-contact-item">📞 +60 3-XXXX XXXX</div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="demo-footer">
+    <div>
+      <div class="demo-logo" style="margin-bottom: 12px;">NLS <span style="color: #3b82f6;">HITECH</span></div>
+      <p style="color: #64748b; font-size: 13px; line-height: 1.6;">CIDB G4 registered contractor providing end-to-end construction services in Petaling, Selangor.</p>
+      <div class="lang-toggle"><span class="active">EN</span><span>BM</span></div>
+    </div>
+    <div>
+      <h4>Navigation</h4>
+      <a href="#">Home</a><a href="#">About</a><a href="#">Services</a><a href="#">Projects</a><a href="#">Contact</a>
+    </div>
+    <div>
+      <h4>Services</h4>
+      <a href="#">Site Preparation</a><a href="#">Structural Works</a><a href="#">Finishing</a><a href="#">Maintenance</a>
+    </div>
+    <div>
+      <h4>Contact</h4>
+      <a href="#">info@nlshitech.com</a><a href="#">+60 3-XXXX XXXX</a><a href="#">Petaling, Selangor</a>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== DIRECTION B: Split Layout ==================== -->
+<div class="mockup-section" id="dir-b">
+  <div class="dir-label">
+    <h2>Direction B — Split Layout</h2>
+    <p>Hero terbagi dua: teks kiri, visual kanan. Kesan modern dan terstruktur. Informasi mudah di-scan.</p>
+  </div>
+
+  <div class="dir-b-hero">
+    <div class="dir-b-hero-left">
+      <div class="badge" style="display: inline-block; padding: 6px 16px; border: 1px solid #2563eb; border-radius: 20px; font-size: 12px; font-weight: 500; letter-spacing: 2px; text-transform: uppercase; color: #60a5fa; margin-bottom: 24px;">CIDB G4 Contractor</div>
+      <h1 style="font-size: 56px; font-weight: 700; line-height: 1.1; margin-bottom: 20px;">We Built the <span style="color: #3b82f6;">Twin Towers.</span><br>We'll Build Yours.</h1>
+      <p style="font-size: 18px; color: #94a3b8; line-height: 1.6; margin-bottom: 32px;">End-to-end construction excellence from site preparation to scheduled maintenance. Based in Petaling, Selangor.</p>
+      <div>
+        <a href="#" class="btn-primary">Our Projects</a>
+        <a href="#" class="btn-outline">📞 Call Us</a>
+      </div>
+      <div style="display: flex; gap: 48px; margin-top: 48px;">
+        <div><div style="font-size: 32px; font-weight: 700; color: #3b82f6;">25+</div><div style="font-size: 13px; color: #64748b;">Years</div></div>
+        <div><div style="font-size: 32px; font-weight: 700; color: #3b82f6;">500+</div><div style="font-size: 13px; color: #64748b;">Projects</div></div>
+        <div><div style="font-size: 32px; font-weight: 700; color: #3b82f6;">G4</div><div style="font-size: 13px; color: #64748b;">CIDB</div></div>
+      </div>
+    </div>
+    <div class="dir-b-hero-right"></div>
+  </div>
+
+  <div class="section-light">
+    <div style="max-width: 1280px; margin: 0 auto;">
+      <div class="section-title">Featured Projects</div>
+      <div class="section-subtitle">Delivering quality across all sectors</div>
+      <div class="portfolio-grid">
+        <div class="portfolio-card" style="background: #e2e8f0;">
+          <div class="portfolio-card-overlay" style="background: linear-gradient(to top, rgba(15,23,42,0.85) 0%, transparent 70%);">
+            <span class="tag">Commercial</span><h3>Office Complex</h3><p>Selangor</p>
+          </div>
+        </div>
+        <div class="portfolio-card" style="background: #cbd5e1;">
+          <div class="portfolio-card-overlay" style="background: linear-gradient(to top, rgba(15,23,42,0.85) 0%, transparent 70%);">
+            <span class="tag">Residential</span><h3>Luxury Homes</h3><p>Petaling Jaya</p>
+          </div>
+        </div>
+        <div class="portfolio-card" style="background: #94a3b8;">
+          <div class="portfolio-card-overlay" style="background: linear-gradient(to top, rgba(15,23,42,0.85) 0%, transparent 70%);">
+            <span class="tag">Civil</span><h3>Road Works</h3><p>Selangor</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="cta-section">
+    <h2>Let's Build <span style="color: #3b82f6;">Together</span></h2>
+    <p>Reach out for a consultation on your next project</p>
+    <a href="#" class="btn-primary">Contact Us</a>
+    <div class="cta-contacts">
+      <div class="cta-contact-item">📧 info@nlshitech.com</div>
+      <div class="cta-contact-item">📞 +60 3-XXXX XXXX</div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== DIRECTION C: Minimal Brutalist ==================== -->
+<div class="mockup-section" id="dir-c">
+  <div class="dir-label">
+    <h2>Direction C — Minimal Brutalist</h2>
+    <p>Tipografi besar dan bold sebagai elemen visual utama. Minimal ornamen, maksimal statement. Kesan berani dan percaya diri.</p>
+  </div>
+
+  <div class="dir-c-hero">
+    <div style="position: relative; z-index: 2;">
+      <div style="font-size: 14px; color: #3b82f6; font-weight: 500; letter-spacing: 3px; text-transform: uppercase; margin-bottom: 16px;">CIDB G4 · Petaling, Selangor</div>
+      <h1>WE BUILD<span>LANDMARKS.</span></h1>
+      <div class="dir-c-line"></div>
+      <p style="font-size: 18px; color: #94a3b8; max-width: 500px; line-height: 1.6; margin-bottom: 32px;">From the Petronas Twin Towers to residential excellence. Construction done right.</p>
+      <a href="#" class="btn-primary">Explore Projects →</a>
+    </div>
+  </div>
+
+  <div class="section-slate" style="padding: 64px;">
+    <div class="stats-row">
+      <div class="stat-item"><div class="stat-number">25+</div><div class="stat-label">YEARS</div></div>
+      <div class="stat-item"><div class="stat-number">500+</div><div class="stat-label">PROJECTS</div></div>
+      <div class="stat-item"><div class="stat-number">G4</div><div class="stat-label">CIDB GRADE</div></div>
+      <div class="stat-item"><div class="stat-number">3</div><div class="stat-label">SECTORS</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== DIRECTION D: Light Card-based ==================== -->
+<div class="mockup-section" id="dir-d">
+  <div class="dir-label">
+    <h2>Direction D — Light Card-based</h2>
+    <p>Background terang, komponen card-based, kesan bersih dan approachable. Cocok jika ingin kesan modern tapi tidak terlalu serius.</p>
+  </div>
+
+  <div class="dir-d-hero">
+    <div class="dir-d-hero-inner">
+      <div>
+        <div style="font-size: 13px; color: #2563eb; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 12px;">CIDB G4 Registered</div>
+        <h1 style="font-size: 52px; font-weight: 700; line-height: 1.1; color: #0f172a; margin-bottom: 16px;">Construction You Can <span style="color: #2563eb;">Trust</span></h1>
+        <p style="color: #64748b; font-size: 18px; line-height: 1.6; margin-bottom: 32px;">End-to-end building solutions from site preparation to maintenance. Proudly serving Selangor and beyond.</p>
+        <a href="#" class="btn-primary">View Projects</a>
+        <a href="#" class="btn-outline" style="border-color: #cbd5e1; color: #0f172a;">Call Us →</a>
+      </div>
+      <div class="dir-d-card-stack">
+        <div class="dir-d-mini-card"><div class="num">25+</div><h4>Years in Business</h4><p>Established track record</p></div>
+        <div class="dir-d-mini-card"><div class="num">500+</div><h4>Projects Done</h4><p>Across all sectors</p></div>
+        <div class="dir-d-mini-card"><div class="num">G4</div><h4>CIDB Grade</h4><p>Certified contractor</p></div>
+        <div class="dir-d-mini-card" style="background: #0f172a; border-color: #0f172a;"><div class="num" style="color: #60a5fa;">★</div><h4 style="color: #fff;">Twin Towers</h4><p style="color: #94a3b8;">Legacy contributor</p></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-light">
+    <div style="max-width: 1280px; margin: 0 auto;">
+      <div class="section-title">Our Services</div>
+      <div class="section-subtitle">Comprehensive construction solutions</div>
+      <div class="services-grid">
+        <div class="service-card service-card-light"><div class="service-icon">🏗️</div><h3 style="color: #0f172a;">Site Preparation</h3><p>Ground works and foundation preparation</p></div>
+        <div class="service-card service-card-light"><div class="service-icon">🏢</div><h3 style="color: #0f172a;">Structural Works</h3><p>Concrete and steel structures</p></div>
+        <div class="service-card service-card-light"><div class="service-icon">🎨</div><h3 style="color: #0f172a;">Finishing</h3><p>Interior and exterior finishing</p></div>
+        <div class="service-card service-card-light"><div class="service-icon">🔧</div><h3 style="color: #0f172a;">Maintenance</h3><p>Scheduled building maintenance</p></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== DIRECTION E: Full-bleed Visual ==================== -->
+<div class="mockup-section" id="dir-e">
+  <div class="dir-label">
+    <h2>Direction E — Full-bleed Visual</h2>
+    <p>Visual bangunan/tower mendominasi sisi kanan, konten di kiri. Legacy Twin Towers langsung terasa. Kesan monumental.</p>
+  </div>
+
+  <div class="dir-e-hero">
+    <div class="dir-e-hero-content">
+      <div class="legacy">
+        <span>🏗️ Proud contributor to the <strong>Petronas Twin Towers</strong></span>
+      </div>
+      <h1>Engineering <span style="color: #3b82f6;">Excellence</span><br>Since Day One</h1>
+      <p style="font-size: 18px; color: #94a3b8; line-height: 1.6; margin: 20px 0 32px;">CIDB G4 contractor delivering residential, commercial, and civil projects across Selangor.</p>
+      <a href="#" class="btn-primary">Our Portfolio</a>
+      <a href="#" class="btn-outline">Contact Us</a>
+    </div>
+  </div>
+
+  <div class="section-slate">
+    <div class="stats-row">
+      <div class="stat-item"><div class="stat-number">25+</div><div class="stat-label">Years Experience</div></div>
+      <div class="stat-item"><div class="stat-number">500+</div><div class="stat-label">Projects Completed</div></div>
+      <div class="stat-item"><div class="stat-number">G4</div><div class="stat-label">CIDB Registered</div></div>
+      <div class="stat-item"><div class="stat-number">3</div><div class="stat-label">Sectors Served</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== DIRECTION F: Timeline Narrative ==================== -->
+<div class="mockup-section" id="dir-f">
+  <div class="dir-label">
+    <h2>Direction F — Timeline Narrative</h2>
+    <p>Storytelling approach: sejarah NLS diceritakan lewat timeline. Twin Towers sebagai milestone utama. Kesan: legacy dan pengalaman.</p>
+  </div>
+
+  <div class="dir-f-hero">
+    <div class="dir-f-hero-inner">
+      <div style="margin-bottom: 48px;">
+        <div style="font-size: 14px; color: #3b82f6; font-weight: 500; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 12px;">Our Journey</div>
+        <h1 style="font-size: 48px; font-weight: 700; line-height: 1.1;">From Twin Towers<br>to <span style="color: #3b82f6;">Your Project</span></h1>
+      </div>
+      <div class="dir-f-timeline">
+        <div class="dir-f-timeline-item">
+          <div class="year">THE BEGINNING</div>
+          <h3>NLS HITECH NIAGA Founded</h3>
+          <p>Started in Petaling, Selangor with a vision for excellence in construction.</p>
+        </div>
+        <div class="dir-f-timeline-item">
+          <div class="year">LANDMARK PROJECT</div>
+          <h3 style="color: #3b82f6;">Petronas Twin Towers</h3>
+          <p>Contributed to Malaysia's most iconic structure — a testament to our engineering capabilities.</p>
+        </div>
+        <div class="dir-f-timeline-item">
+          <div class="year">GROWTH</div>
+          <h3>CIDB G4 Certification</h3>
+          <p>Achieved G4 contractor status, expanding into residential, commercial, and civil sectors.</p>
+        </div>
+        <div class="dir-f-timeline-item">
+          <div class="year">TODAY</div>
+          <h3>500+ Projects & Counting</h3>
+          <p>Delivering end-to-end construction services with safety, transparency, and neat workmanship.</p>
+        </div>
+      </div>
+      <div style="margin-top: 32px; padding-left: 72px;">
+        <a href="#" class="btn-primary">Start Your Project</a>
+        <a href="#" class="btn-outline">View Portfolio</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function showDir(id) {
+  document.querySelectorAll('.mockup-section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.dir-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('dir-' + id).classList.add('active');
+  event.target.classList.add('active');
+  window.scrollTo(0, 0);
+}
+</script>
+</body>
+</html>

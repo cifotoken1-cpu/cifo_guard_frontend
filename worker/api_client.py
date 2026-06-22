@@ -74,6 +74,21 @@ def close_visit(visit_id: str, exit_time: str = None) -> bool:
         return False
 
 
+def update_visit_metadata(visit_id: str, metadata: dict) -> bool:
+    """PATCH /visits/:id/metadata — update visit metadata (e.g. appearance)."""
+    try:
+        res = _session.patch(f"{BACKEND_URL}/visits/{visit_id}/metadata", json={"metadata": metadata}, timeout=5)
+        if res.status_code == 200:
+            logger.debug(f"[api] visit metadata updated {visit_id}")
+            return True
+        else:
+            logger.warning(f"[api] visit metadata PATCH {res.status_code}: {res.text[:200]}")
+            return False
+    except requests.exceptions.RequestException as e:
+        logger.warning(f"[api] visit metadata PATCH failed: {e}")
+        return False
+
+
 def health_check() -> bool:
     """Ping backend health endpoint — used by Docker healthcheck."""
     try:

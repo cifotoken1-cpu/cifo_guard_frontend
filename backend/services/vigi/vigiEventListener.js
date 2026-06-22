@@ -74,15 +74,17 @@ class VigiEventListener extends EventEmitter {
 
       stream.on('data', (chunk) => {
         buffer += chunk.toString('utf8');
-        // VIGI uses a literal "--boundary--" boundary value, so parts are
-        // separated by "----boundary--" in the raw stream.
-        const SEP = '----boundary--';
-        let idx;
-        while ((idx = buffer.indexOf(SEP)) !== -1) {
-          const part = buffer.slice(0, idx);
-          buffer = buffer.slice(idx + SEP.length);
-          if (part.trim()) this._handlePart(part);
+        // Emit as soon as a complete JSON object is in the buffer — do NOT wait
+        // for the trailing multipart boundary. The camera often delays that
+        // boundary until its next heartbeat, which would stall an event by up to
+        // `heartbeat` seconds (observed ~15s). Greedy JSON extraction kills that.
+        let obj;
+        while ((obj = this._nextJsonObject(buffer)) !== null) {
+          buffer = buffer.slice(obj.endIdx);
+          this._handlePayload(obj.json);
         }
+        // Safety: drop a stray unclosed '{' that never completes.
+        if (buffer.length > 1_000_000) buffer = '';
       });
 
       stream.on('end', () => resolve());
@@ -90,18 +92,38 @@ class VigiEventListener extends EventEmitter {
     });
   }
 
-  _handlePart(part) {
-    // Each part has HTTP-like headers, a blank line, then a JSON body.
-    // We just look for the first {...} block.
-    const start = part.indexOf('{');
-    const end = part.lastIndexOf('}');
-    if (start === -1 || end === -1 || end < start) return;
+  // Find the first complete, brace-balanced JSON object in `buf` (string-aware,
+  // so braces inside quoted strings don't fool it). Returns { json, endIdx } or
+  // null if no complete object yet (wait for more chunks).
+  _nextJsonObject(buf) {
+    const start = buf.indexOf('{');
+    if (start === -1) return null;
+    let depth = 0;
+    let inStr = false;
+    let esc = false;
+    for (let i = start; i < buf.length; i++) {
+      const c = buf[i];
+      if (inStr) {
+        if (esc) esc = false;
+        else if (c === '\\') esc = true;
+        else if (c === '"') inStr = false;
+      } else if (c === '"') {
+        inStr = true;
+      } else if (c === '{') {
+        depth++;
+      } else if (c === '}') {
+        if (--depth === 0) return { json: buf.slice(start, i + 1), endIdx: i + 1 };
+      }
+    }
+    return null; // incomplete object — more chunks needed
+  }
 
+  _handlePayload(jsonStr) {
     let payload;
     try {
-      payload = JSON.parse(part.slice(start, end + 1));
+      payload = JSON.parse(jsonStr);
     } catch (e) {
-      return; // partial / malformed chunk — ignore
+      return; // malformed — ignore
     }
 
     if (payload.Heartbeat !== undefined) {

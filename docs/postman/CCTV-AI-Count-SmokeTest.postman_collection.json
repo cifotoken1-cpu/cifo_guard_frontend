@@ -1,0 +1,640 @@
+{
+  "info": {
+    "name": "CCTV AI Count — Smoke Test",
+    "description": "Smoke test collection untuk QA memvalidasi fitur Counting, Kunjungan Per Individu, dan Laporan Cerdas.\nAlur: Login → Crossing Event → Count Summary → Visit Entry/Close → Duration Summary → AI Report → CSV Export\n\nPetunjuk:\n1. Import collection ini ke Postman\n2. Set variable BASE_URL jika berbeda (default: http://localhost:3001/api)\n3. Jalankan folder secara berurutan: 00 → 01 → 02 → 03 → 04 → 05\n4. Token JWT otomatis tersimpan setelah Login (step 00-01)\n5. Dev mode (NODE_ENV=development): Login boleh di-skip, semua request tetap jalan tanpa token",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "BASE_URL",
+      "value": "http://localhost:3001/api",
+      "description": "Base URL backend. Ganti ke staging jika perlu."
+    },
+    {
+      "key": "TOKEN",
+      "value": "",
+      "description": "JWT token — otomatis diisi setelah Login berhasil."
+    },
+    {
+      "key": "CAMERA_ID",
+      "value": "C240-01",
+      "description": "ID kamera. Harus match dengan data di tabel cameras."
+    },
+    {
+      "key": "TEST_DATE",
+      "value": "2026-06-18",
+      "description": "Tanggal untuk filter laporan (YYYY-MM-DD). Update ke hari ini jika perlu."
+    },
+    {
+      "key": "VISIT_ID",
+      "value": "",
+      "description": "ID kunjungan — otomatis diisi setelah Create Visit berhasil."
+    }
+  ],
+  "item": [
+    {
+      "name": "00 — Auth",
+      "item": [
+        {
+          "name": "Login (Production Mode)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Ada token', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.token).to.be.a('string');",
+                  "  pm.collectionVariables.set('TOKEN', body.token);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"citranetbd9\"\n}"
+            },
+            "url": "{{BASE_URL}}/auth/login",
+            "description": "Login dan simpan JWT token. Skip jika NODE_ENV=development."
+          }
+        },
+        {
+          "name": "Cek User Aktif",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Ada data user', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body).to.have.property('username');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }],
+            "url": "{{BASE_URL}}/auth/me",
+            "description": "Validasi token aktif dan info user."
+          }
+        }
+      ]
+    },
+    {
+      "name": "01 — Crossing Events (S4)",
+      "item": [
+        {
+          "name": "POST Crossing Event — IN",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Event tersimpan', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.success).to.be.true;",
+                  "  pm.expect(body.data).to.have.property('id');",
+                  "  pm.expect(body.data.direction).to.equal('in');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"camera_id\": \"{{CAMERA_ID}}\",\n  \"direction\": \"in\",\n  \"crossed_at\": \"{{TEST_DATE}}T08:00:00.000Z\"\n}"
+            },
+            "url": "{{BASE_URL}}/counting/event",
+            "description": "Simulasi orang masuk. Worker Python akan POST ke endpoint ini."
+          }
+        },
+        {
+          "name": "POST Crossing Event — OUT",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Arah OUT tersimpan', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.data.direction).to.equal('out');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"camera_id\": \"{{CAMERA_ID}}\",\n  \"direction\": \"out\",\n  \"crossed_at\": \"{{TEST_DATE}}T08:30:00.000Z\"\n}"
+            },
+            "url": "{{BASE_URL}}/counting/event"
+          }
+        },
+        {
+          "name": "POST Crossing Event — Validasi Gagal (tanpa camera_id)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Ada pesan error', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.success).to.be.false;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"direction\": \"in\",\n  \"crossed_at\": \"{{TEST_DATE}}T08:00:00.000Z\"\n}"
+            },
+            "url": "{{BASE_URL}}/counting/event",
+            "description": "Negative test — camera_id wajib."
+          }
+        },
+        {
+          "name": "GET Count Per Kamera",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Ada in/out/inside', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.data).to.have.all.keys('in', 'out', 'inside');",
+                  "  pm.expect(body.data.in).to.be.a('number');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }],
+            "url": {
+              "raw": "{{BASE_URL}}/counting/cameras/{{CAMERA_ID}}/count?date={{TEST_DATE}}",
+              "host": ["{{BASE_URL}}"],
+              "path": ["counting", "cameras", "{{CAMERA_ID}}", "count"],
+              "query": [{ "key": "date", "value": "{{TEST_DATE}}" }]
+            },
+            "description": "Jumlah in/out/inside untuk satu kamera hari ini."
+          }
+        },
+        {
+          "name": "GET Summary Semua Kamera",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Ada totals dan cameras', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.data).to.have.property('totals');",
+                  "  pm.expect(body.data).to.have.property('cameras');",
+                  "  pm.expect(body.data.cameras).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }],
+            "url": {
+              "raw": "{{BASE_URL}}/counting/summary?date={{TEST_DATE}}",
+              "host": ["{{BASE_URL}}"],
+              "path": ["counting", "summary"],
+              "query": [{ "key": "date", "value": "{{TEST_DATE}}" }]
+            },
+            "description": "Rekap crossing semua kamera — dipakai di dashboard utama."
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 — Person Visits (S6)",
+      "item": [
+        {
+          "name": "POST Visit Lengkap (dengan exit_time)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Visit tersimpan + duration dihitung', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.success).to.be.true;",
+                  "  pm.expect(body.data).to.have.property('id');",
+                  "  pm.expect(body.data.duration_seconds).to.be.a('number');",
+                  "  pm.collectionVariables.set('VISIT_ID', body.data.id);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"camera_id\": \"{{CAMERA_ID}}\",\n  \"person_uid\": \"track_smoke_001\",\n  \"entry_time\": \"{{TEST_DATE}}T09:00:00.000Z\",\n  \"exit_time\": \"{{TEST_DATE}}T09:03:45.000Z\",\n  \"confidence\": 0.91,\n  \"match_method\": \"bytetrack\"\n}"
+            },
+            "url": "{{BASE_URL}}/visits",
+            "description": "Visit sudah selesai (ada entry + exit). Duration dihitung otomatis = 225 detik."
+          }
+        },
+        {
+          "name": "POST Visit Terbuka (tanpa exit_time)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Visit open tersimpan', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.data.exit_time).to.be.null;",
+                  "  pm.expect(body.data.duration_seconds).to.be.null;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"camera_id\": \"{{CAMERA_ID}}\",\n  \"person_uid\": \"track_smoke_002\",\n  \"entry_time\": \"{{TEST_DATE}}T09:10:00.000Z\",\n  \"confidence\": 0.85,\n  \"match_method\": \"bytetrack\"\n}"
+            },
+            "url": "{{BASE_URL}}/visits",
+            "description": "Orang masuk tapi belum keluar — status open."
+          }
+        },
+        {
+          "name": "PATCH Close Visit",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Visit tertutup + duration terisi', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.data.exit_time).to.not.be.null;",
+                  "  pm.expect(body.data.duration_seconds).to.be.above(0);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"exit_time\": \"{{TEST_DATE}}T09:06:00.000Z\"\n}"
+            },
+            "url": "{{BASE_URL}}/visits/{{VISIT_ID}}/close",
+            "description": "Tutup visit dengan exit_time. VISIT_ID dari step Create Visit."
+          }
+        },
+        {
+          "name": "PATCH Close Visit — Validasi Gagal (exit < entry)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Ditolak — exit sebelum entry', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.success).to.be.false;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"exit_time\": \"2000-01-01T00:00:00.000Z\"\n}"
+            },
+            "url": "{{BASE_URL}}/visits/{{VISIT_ID}}/close",
+            "description": "Negative test — exit_time lebih awal dari entry_time harus ditolak."
+          }
+        },
+        {
+          "name": "GET Kunjungan Per Kamera",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Ada array kunjungan', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.data).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }],
+            "url": {
+              "raw": "{{BASE_URL}}/visits/cameras/{{CAMERA_ID}}?date={{TEST_DATE}}&status=closed",
+              "host": ["{{BASE_URL}}"],
+              "path": ["visits", "cameras", "{{CAMERA_ID}}"],
+              "query": [
+                { "key": "date", "value": "{{TEST_DATE}}" },
+                { "key": "status", "value": "closed" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET Duration Summary",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Ada avg/min/max duration', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.data).to.be.an('array');",
+                  "  if (body.data.length > 0) {",
+                  "    pm.expect(body.data[0]).to.have.all.keys('camera_id', 'avg_duration', 'min_duration', 'max_duration', 'visit_count');",
+                  "  }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }],
+            "url": {
+              "raw": "{{BASE_URL}}/visits/duration-summary?date={{TEST_DATE}}",
+              "host": ["{{BASE_URL}}"],
+              "path": ["visits", "duration-summary"],
+              "query": [{ "key": "date", "value": "{{TEST_DATE}}" }]
+            },
+            "description": "AVG/MIN/MAX durasi kunjungan per kamera — ditampilkan di kolom Duration di dashboard."
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 — Laporan Cerdas (S7)",
+      "item": [
+        {
+          "name": "GET AI Daily Summary",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Ada stats dan narrative', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.success).to.be.true;",
+                  "  pm.expect(body.data).to.have.property('stats');",
+                  "  pm.expect(body.data).to.have.property('narrative');",
+                  "});",
+                  "pm.test('Jika AI tidak tersedia, ada flag ai_unavailable', () => {",
+                  "  const body = pm.response.json();",
+                  "  if (body.data.ai_unavailable) {",
+                  "    console.log('AI unavailable — set OPENROUTER_API_KEY di .env untuk aktifkan');",
+                  "  }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }],
+            "url": {
+              "raw": "{{BASE_URL}}/reports/daily-summary?date={{TEST_DATE}}",
+              "host": ["{{BASE_URL}}"],
+              "path": ["reports", "daily-summary"],
+              "query": [{ "key": "date", "value": "{{TEST_DATE}}" }]
+            },
+            "description": "AI summary harian via OpenRouter. Jika OPENROUTER_API_KEY tidak di-set, response tetap 200 dengan ai_unavailable: true."
+          }
+        },
+        {
+          "name": "GET Export CSV",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Content-Type CSV', () => {",
+                  "  pm.expect(pm.response.headers.get('Content-Type')).to.include('text/csv');",
+                  "});",
+                  "pm.test('Ada header attachment', () => {",
+                  "  const cd = pm.response.headers.get('Content-Disposition');",
+                  "  pm.expect(cd).to.include('attachment');",
+                  "  pm.expect(cd).to.include('.csv');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }],
+            "url": {
+              "raw": "{{BASE_URL}}/reports/export/csv?date={{TEST_DATE}}",
+              "host": ["{{BASE_URL}}"],
+              "path": ["reports", "export", "csv"],
+              "query": [{ "key": "date", "value": "{{TEST_DATE}}" }]
+            },
+            "description": "Download CSV crossing events + person visits. Buka di Excel untuk verifikasi data."
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 — Edge Cases",
+      "item": [
+        {
+          "name": "GET Count — Tanggal Tidak Valid",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 400', () => pm.response.to.have.status(400));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }],
+            "url": {
+              "raw": "{{BASE_URL}}/counting/cameras/{{CAMERA_ID}}/count?date=bukan-tanggal",
+              "host": ["{{BASE_URL}}"],
+              "path": ["counting", "cameras", "{{CAMERA_ID}}", "count"],
+              "query": [{ "key": "date", "value": "bukan-tanggal" }]
+            },
+            "description": "Negative test — date tidak valid harus 400."
+          }
+        },
+        {
+          "name": "POST Crossing Event — Direction Tidak Valid",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 400', () => pm.response.to.have.status(400));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"camera_id\": \"{{CAMERA_ID}}\",\n  \"direction\": \"sideways\",\n  \"crossed_at\": \"{{TEST_DATE}}T08:00:00.000Z\"\n}"
+            },
+            "url": "{{BASE_URL}}/counting/event",
+            "description": "Negative test — direction hanya boleh 'in' atau 'out'."
+          }
+        },
+        {
+          "name": "GET Summary — Tanpa Tanggal (default hari ini)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Response valid tanpa param date', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.success).to.be.true;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }],
+            "url": "{{BASE_URL}}/counting/summary",
+            "description": "Tanpa ?date — backend default ke hari ini."
+          }
+        },
+        {
+          "name": "GET Kunjungan — Status Filter: open",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Semua entry open (exit_time null)', () => {",
+                  "  const body = pm.response.json();",
+                  "  if (body.data.length > 0) {",
+                  "    body.data.forEach(v => {",
+                  "      pm.expect(v.exit_time).to.be.null;",
+                  "    });",
+                  "  }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }],
+            "url": {
+              "raw": "{{BASE_URL}}/visits/cameras/{{CAMERA_ID}}?status=open",
+              "host": ["{{BASE_URL}}"],
+              "path": ["visits", "cameras", "{{CAMERA_ID}}"],
+              "query": [{ "key": "status", "value": "open" }]
+            },
+            "description": "Filter kunjungan belum selesai — verifikasi exit_time null semua."
+          }
+        }
+      ]
+    }
+  ]
+}

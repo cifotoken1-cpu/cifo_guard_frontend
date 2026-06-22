@@ -18,11 +18,31 @@ export function CameraCard({ cam, time, bgIndex = 0 }) {
     const video = videoRef.current;
 
     if (Hls.isSupported()) {
-      const hls = new Hls({ lowLatencyMode: true });
+      const hls = new Hls({
+        lowLatencyMode: false,
+        liveSyncDurationCount: 2,
+        liveMaxLatencyDurationCount: 4,
+        manifestLoadingMaxRetry: 10,
+        manifestLoadingRetryDelay: 2000,
+        levelLoadingMaxRetry: 10,
+        fragLoadingMaxRetry: 10,
+      });
       hls.loadSource(cam.streamUrl);
       hls.attachMedia(video);
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
         video.play().catch(() => {});
+      });
+      hls.on(Hls.Events.ERROR, (_e, data) => {
+        if (data.fatal) {
+          hls.destroy();
+          setTimeout(() => {
+            const h2 = new Hls({ liveSyncDurationCount: 2, liveMaxLatencyDurationCount: 4, manifestLoadingMaxRetry: 10, manifestLoadingRetryDelay: 2000, fragLoadingMaxRetry: 10 });
+            h2.loadSource(cam.streamUrl);
+            h2.attachMedia(video);
+            h2.on(Hls.Events.MANIFEST_PARSED, () => video.play().catch(() => {}));
+            hlsRef.current = h2;
+          }, 3000);
+        }
       });
       hlsRef.current = hls;
       return () => hls.destroy();

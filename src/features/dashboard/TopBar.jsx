@@ -3,6 +3,7 @@ import { PRODUCT } from '../../config/product';
 import { useUIStore } from '../../store/ui.store';
 import { useAlertStats } from '../../hooks/useAlertsStream';
 import { useCameras } from '../../hooks/useCamerasStream';
+import { useSensors } from '../../hooks/useSensorsStream';
 import { useHealth } from '../../hooks/useSystemHealth';
 import { formatUptime } from '../../utils/format';
 import styles from './TopBar.module.css';
@@ -12,12 +13,13 @@ export function TopBar() {
 
   const { data: alertStats } = useAlertStats();
   const { data: camerasData } = useCameras();
+  const { data: sensorsData } = useSensors();
   const { data: health } = useHealth();
 
   const alertCount = alertStats?.active ?? alertStats?.total ?? 0;
   const camerasOnline = camerasData?.online ?? 0;
   const camerasTotal = camerasData?.total ?? 0;
-  const sensorsActive = camerasData?.total ?? 0; // placeholder
+  const sensorsActive = sensorsData?.summary?.online ?? sensorsData?.total ?? 0;
   const uptime = formatUptime(health?.uptime || 0);
   const version = health?.version || 'v0.0.0';
 
@@ -50,7 +52,6 @@ export function TopBar() {
           title="View all cameras"
         />
         <Stat label="Sensors" value={`${sensorsActive} Active`} tone="ok" />
-        <Stat label="Backup" value="100%" tone="ok" icon={I.battery} />
       </div>
 
       <div className={styles.right}>

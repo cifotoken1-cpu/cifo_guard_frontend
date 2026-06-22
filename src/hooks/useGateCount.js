@@ -57,6 +57,24 @@ export function useDurationSummary(date) {
   });
 }
 
+export function useCameraVisits(cameraId, date) {
+  const qc = useQueryClient();
+
+  useEffect(() => {
+    return onSocket('visit_event', () => {
+      qc.invalidateQueries({ queryKey: ['visits', 'camera', cameraId] });
+    });
+  }, [qc, cameraId]);
+
+  return useQuery({
+    queryKey: ['visits', 'camera', cameraId, date],
+    queryFn: () => visitsApi.getCameraVisits(cameraId, date),
+    enabled: !!cameraId,
+    staleTime: 15_000,
+    refetchInterval: 15_000,
+  });
+}
+
 export function useDailyReport(date) {
   return useQuery({
     queryKey: ['reports', 'daily', date],

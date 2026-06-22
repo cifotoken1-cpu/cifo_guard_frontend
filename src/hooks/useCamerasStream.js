@@ -29,18 +29,16 @@ export function useCameras() {
     }
 
     const sendHeartbeats = async () => {
-      const cameras = query.data.cameras;
-      
-      // Stagger heartbeat calls: 500ms apart to avoid thundering herd
-      for (let i = 0; i < cameras.length; i++) {
-        const cam = cameras[i];
-        
+      // Only send heartbeat for cameras that have an active stream URL
+      const activeCams = query.data.cameras.filter((c) => c.stream_url);
+      for (let i = 0; i < activeCams.length; i++) {
+        const cam = activeCams[i];
         setTimeout(() => {
           camerasApi.heartbeat(cam.id, {
             status: 'online',
             responseTime: Math.round(Math.random() * 200 + 50),
             healthScore: 90,
-            streamAccessible: !!cam.streamUrl,
+            streamAccessible: true,
           }).catch((err) => {
             console.debug(`Heartbeat failed for ${cam.id}:`, err.message);
           });

@@ -13,11 +13,11 @@ export const useUIStore = create(
 
       // Dashboard section visibility state
       sectionVisibility: {
-        overview: true,
-        securityMode: true,
-        sensorStatus: true,
+        overview: false,
+        securityMode: false,
+        sensorStatus: false,
         liveCameras: true,
-        activityLogPanel: true,
+        activityLogPanel: false,
       },
 
       openModal: (name) => set({ modal: name }),
@@ -52,11 +52,11 @@ export const useUIStore = create(
       resetSectionVisibility: () =>
         set({
           sectionVisibility: {
-            overview: true,
-            securityMode: true,
-            sensorStatus: true,
+            overview: false,
+            securityMode: false,
+            sensorStatus: false,
             liveCameras: true,
-            activityLogPanel: true,
+            activityLogPanel: false,
           },
         }),
     }),
